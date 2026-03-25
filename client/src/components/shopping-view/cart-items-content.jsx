@@ -3,8 +3,10 @@ import { useDispatch, useSelector } from "react-redux";
 import { deleteCartItem, updateCartQuantity } from "@/store/shop/cart-slice";
 import { useToast } from "../ui/use-toast";
 import { Checkbox } from "../ui/checkbox";
+import { Input } from "../ui/input";
 import { toggleSelectItem } from "@/store/shop/cart-slice";
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 
 function UserCartItemsContent({
   cartItem,
@@ -17,6 +19,12 @@ function UserCartItemsContent({
   const dispatch = useDispatch();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const [inputValue, setInputValue] = useState(cartItem?.quantity);
+
+  useEffect(() => {
+    setInputValue(cartItem?.quantity);
+  }, [cartItem?.quantity]);
 
   const itemId = `${cartItem.productId}-${cartItem.size || ''}-${cartItem.color || ''}`;
   const isSelected = (selectedItems || []).includes(itemId);
@@ -37,7 +45,6 @@ function UserCartItemsContent({
     if (typeOfAction == "plus") {
       let getCartItems = cartItems.items || [];
 
-      if (getCartItems.length) {
         const indexOfCurrentCartItem = getCartItems.findIndex(
           (item) =>
             item.productId === getCartItem?.productId &&
@@ -48,24 +55,30 @@ function UserCartItemsContent({
         const getCurrentProductIndex = productList.findIndex(
           (product) => product._id === getCartItem?.productId
         );
-        const getTotalStock =
-          getCurrentProductIndex > -1
-            ? productList[getCurrentProductIndex].totalStock
-            : null;
 
-        console.log(getCurrentProductIndex, getTotalStock, "getTotalStock");
+        if (getCurrentProductIndex > -1) {
+          const product = productList[getCurrentProductIndex];
+          let maxStock = product.totalStock;
 
-        if (indexOfCurrentCartItem > -1 && getTotalStock !== null) {
-          const getQuantity = getCartItems[indexOfCurrentCartItem].quantity;
-          if (getQuantity + 1 > getTotalStock) {
-            toast({
-              title: `Only ${getQuantity} quantity can be added for this item`,
-              variant: "destructive",
-            });
-
-            return;
+          if (product.variants && product.variants.length > 0) {
+            const variant = product.variants.find(
+              (v) => v.size === getCartItem?.size && v.color === getCartItem?.color
+            );
+            if (variant) {
+              maxStock = variant.stock;
+            }
           }
-        }
+
+          if (indexOfCurrentCartItem > -1 && maxStock !== null) {
+            const getQuantity = getCartItems[indexOfCurrentCartItem].quantity;
+            if (getQuantity + 1 > maxStock) {
+              toast({
+                title: `Only ${maxStock} quantity available for this item`,
+                variant: "destructive",
+              });
+              return;
+            }
+          }
       }
     }
 
@@ -90,6 +103,66 @@ function UserCartItemsContent({
           title: data?.payload?.message || "Requested quantity is not available",
           variant: "destructive",
         });
+      }
+    });
+  }
+
+  function handleManualUpdateQuantity(getCartItem, newValue) {
+    if (newValue === "" || isNaN(newValue)) return;
+    let quantity = parseInt(newValue);
+
+    if (quantity < 1) {
+      toast({ title: "Quantity must be at least 1", variant: "destructive" });
+      setInputValue(getCartItem?.quantity);
+      return;
+    }
+
+    const getCurrentProductIndex = productList.findIndex(
+      (product) => product._id === getCartItem?.productId
+    );
+
+    if (getCurrentProductIndex > -1) {
+      const product = productList[getCurrentProductIndex];
+      let maxStock = product.totalStock;
+
+      if (product.variants && product.variants.length > 0) {
+        const variant = product.variants.find(
+          (v) => v.size === getCartItem?.size && v.color === getCartItem?.color
+        );
+        if (variant) {
+          maxStock = variant.stock;
+        }
+      }
+
+      if (maxStock !== null && quantity > maxStock) {
+        toast({
+          title: `Only ${maxStock} quantity available for this item`,
+          variant: "destructive",
+        });
+        setInputValue(getCartItem?.quantity);
+        return;
+      }
+    }
+
+    if (quantity === getCartItem?.quantity) return;
+
+    dispatch(
+      updateCartQuantity({
+        userId: user?.id,
+        productId: getCartItem?.productId,
+        size: getCartItem?.size,
+        color: getCartItem?.color,
+        quantity: quantity,
+      })
+    ).then((data) => {
+      if (data?.payload?.success) {
+        toast({ title: "Cart item updated successfully" });
+      } else {
+        toast({
+          title: data?.payload?.message || "Requested quantity not available",
+          variant: "destructive",
+        });
+        setInputValue(getCartItem?.quantity);
       }
     });
   }
@@ -160,9 +233,18 @@ function UserCartItemsContent({
           >
             <Minus className="w-3.5 h-3.5" strokeWidth={1.5} />
           </button>
-          <span className="min-w-4 text-center text-[11px] font-medium tracking-[0.1em] text-gray-800">
-            {cartItem?.quantity}
-          </span>
+          <Input
+            type="number"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onBlur={(e) => handleManualUpdateQuantity(cartItem, e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleManualUpdateQuantity(cartItem, e.target.value);
+              }
+            }}
+            className="w-12 h-7 p-1 text-center text-[11px] font-medium tracking-[0.1em] text-gray-800 border-gray-200 focus:ring-0 focus:border-black rounded-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          />
           <button
             className="text-sm text-gray-600 hover:text-black transition-colors"
             onClick={() => {

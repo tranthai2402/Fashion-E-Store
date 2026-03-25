@@ -7,6 +7,7 @@ const initialState = {
   orderId: null,
   orderList: [],
   orderDetails: null,
+  hasPurchased: false,
 };
 
 export const createNewOrder = createAsyncThunk(
@@ -117,6 +118,9 @@ const shoppingOrderSlice = createSlice({
       .addCase(getOrderDetails.rejected, (state) => {
         state.isLoading = false;
         state.orderDetails = null;
+      })
+      .addCase(checkProductPurchase.fulfilled, (state, action) => {
+        state.hasPurchased = action.payload.hasPurchased;
       });
   },
 });

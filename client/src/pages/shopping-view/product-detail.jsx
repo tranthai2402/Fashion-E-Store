@@ -10,6 +10,7 @@ import {
 } from "@/store/shop/products-slice";
 import { useEffect, useMemo, useState } from "react";
 import { addReview, getReviews } from "@/store/shop/review-slice";
+import { checkProductPurchase } from "@/store/shop/order-slice";
 import { useParams, useNavigate } from "react-router-dom";
 
 function ProductDetailPage() {
@@ -22,6 +23,7 @@ function ProductDetailPage() {
   );
   const { cartItems } = useSelector((state) => state.shopCart);
   const { reviews } = useSelector((state) => state.shopReview);
+  const { hasPurchased } = useSelector((state) => state.shopOrder);
   const { toast } = useToast();
 
   const [selectedSize, setSelectedSize] = useState("");
@@ -44,6 +46,7 @@ function ProductDetailPage() {
   useEffect(() => {
     if (productDetails) {
       dispatch(getReviews(productDetails._id));
+      dispatch(checkProductPurchase({ userId: user?.id, productId: productDetails._id }));
       const firstImage =
         productDetails?.images?.[0] || productDetails?.image || "";
       setMainImage(firstImage);
@@ -528,7 +531,8 @@ function ProductDetailPage() {
               </h2>
 
               {/* Add Review */}
-              <div className="mb-8">
+              {hasPurchased ? (
+                <div className="mb-8">
                 <div className="flex items-center gap-1 mb-3">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
@@ -561,6 +565,11 @@ function ProductDetailPage() {
                   </button>
                 </div>
               </div>
+              ) : (
+                <p className="text-[10px] uppercase tracking-[0.15em] text-gray-500 mb-8 p-4 bg-gray-50 border border-gray-100 italic">
+                  You must purchase this item to share your thoughts.
+                </p>
+              )}
 
               {/* Review List */}
               <div className="space-y-6">

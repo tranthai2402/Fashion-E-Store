@@ -12,6 +12,7 @@ import { Label } from "../ui/label";
 import StarRatingComponent from "../common/star-rating";
 import { useEffect, useState } from "react";
 import { addReview, getReviews } from "@/store/shop/review-slice";
+import { checkProductPurchase } from "@/store/shop/order-slice";
 
 function ProductDetailsDialog({ open, setOpen, productDetails }) {
   const [reviewMsg, setReviewMsg] = useState("");
@@ -22,6 +23,7 @@ function ProductDetailsDialog({ open, setOpen, productDetails }) {
   const { user } = useSelector((state) => state.auth);
   const { cartItems } = useSelector((state) => state.shopCart);
   const { reviews } = useSelector((state) => state.shopReview);
+  const { hasPurchased } = useSelector((state) => state.shopOrder);
 
   const { toast } = useToast();
 
@@ -145,8 +147,9 @@ function ProductDetailsDialog({ open, setOpen, productDetails }) {
   useEffect(() => {
     if (productDetails !== null) {
       dispatch(getReviews(productDetails?._id));
+      dispatch(checkProductPurchase({ userId: user?.id, productId: productDetails?._id }));
     }
-  }, [productDetails, dispatch]);
+  }, [productDetails, dispatch, user?.id]);
 
   console.log(reviews, "reviews");
 
@@ -319,8 +322,8 @@ function ProductDetailsDialog({ open, setOpen, productDetails }) {
             <h2 className="text-xl font-bold mb-4">Reviews</h2>
             <div className="grid gap-6">
               {reviews && reviews.length > 0 ? (
-                reviews.map((reviewItem) => (
-                  <div className="flex gap-4">
+                reviews.map((reviewItem, index) => (
+                  <div key={index} className="flex gap-4">
                     <Avatar className="w-10 h-10 border">
                       <AvatarFallback>
                         {reviewItem?.userName[0].toUpperCase()}
@@ -341,6 +344,35 @@ function ProductDetailsDialog({ open, setOpen, productDetails }) {
                 ))
               ) : (
                 <h1>No Reviews</h1>
+              )}
+            </div>
+            <div className="mt-10 flex-col flex gap-2">
+              <Label>Write a Review</Label>
+              {hasPurchased ? (
+                <div className="flex flex-col gap-2">
+                  <div className="flex gap-1">
+                    <StarRatingComponent
+                      rating={rating}
+                      handleRatingChange={handleRatingChange}
+                    />
+                  </div>
+                  <Input
+                    name="reviewMsg"
+                    value={reviewMsg}
+                    onChange={(event) => setReviewMsg(event.target.value)}
+                    placeholder="Write a review..."
+                  />
+                  <Button
+                    onClick={handleAddReview}
+                    disabled={reviewMsg.trim() === "" || rating === 0}
+                  >
+                    Submit
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground p-3 border rounded bg-muted/20">
+                  You need to purchase this product to leave a review.
+                </p>
               )}
             </div>
           </div>
