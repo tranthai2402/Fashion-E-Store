@@ -8,6 +8,7 @@ const addFeatureImage = async (req, res) => {
 
     const featureImages = new Feature({
       image,
+      enabled: true,
     });
 
     await featureImages.save();
@@ -32,6 +33,37 @@ const getFeatureImages = async (req, res) => {
     res.status(200).json({
       success: true,
       data: images,
+    });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({
+      success: false,
+      message: "Some error occured!",
+    });
+  }
+};
+
+const updateFeatureImageStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { enabled } = req.body;
+
+    const featureImage = await Feature.findByIdAndUpdate(
+      id,
+      { enabled },
+      { new: true }
+    );
+
+    if (!featureImage) {
+      return res.status(404).json({
+        success: false,
+        message: "Feature image not found!",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: featureImage,
     });
   } catch (e) {
     console.log(e);
@@ -68,4 +100,9 @@ const deleteFeatureImage = async (req, res) => {
   }
 };
 
-module.exports = { addFeatureImage, getFeatureImages, deleteFeatureImage };
+module.exports = {
+  addFeatureImage,
+  getFeatureImages,
+  updateFeatureImageStatus,
+  deleteFeatureImage,
+};

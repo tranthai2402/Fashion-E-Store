@@ -4,6 +4,7 @@ import {
   addFeatureImage,
   deleteFeatureImage,
   getFeatureImages,
+  updateFeatureImageStatus,
 } from "@/store/common-slice";
 import { getRevenueAnalytics, getComparisonAnalytics } from "@/store/admin/analytics-slice";
 import { useEffect, useState } from "react";
@@ -26,7 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Users, ShoppingBag, DollarSign, ArrowRightLeft } from "lucide-react";
+import { Users, ShoppingBag, DollarSign, ArrowRightLeft, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -58,6 +59,17 @@ function AdminDashboard() {
 
   function handleDeleteFeatureImage(id) {
     dispatch(deleteFeatureImage(id)).then((data) => {
+      if (data?.payload?.success) {
+        dispatch(getFeatureImages());
+      }
+    });
+  }
+
+  function handleToggleFeatureImageStatus(id, currentStatus) {
+    const nextStatus = currentStatus === false ? true : false;
+    dispatch(
+      updateFeatureImageStatus({ id, enabled: nextStatus })
+    ).then((data) => {
       if (data?.payload?.success) {
         dispatch(getFeatureImages());
       }
@@ -205,12 +217,12 @@ function AdminDashboard() {
               </Label>
             </div>
           </div>
-          
+
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Đơn vị:</span>
-              <Select 
-                value={filter} 
+              <Select
+                value={filter}
                 onValueChange={(value) => {
                   setFilter(value);
                   // Reset periods with appropriate formats when filter changes
@@ -259,8 +271,8 @@ function AdminDashboard() {
                     </Select>
                   ) : filter === "month" ? (
                     <div className="flex gap-1">
-                      <Select 
-                        value={period1.split("-")[1]} 
+                      <Select
+                        value={period1.split("-")[1]}
                         onValueChange={(m) => setPeriod1(`${period1.split("-")[0]}-${m}`)}
                       >
                         <SelectTrigger className="h-7 text-xs w-[90px]">
@@ -272,8 +284,8 @@ function AdminDashboard() {
                           ))}
                         </SelectContent>
                       </Select>
-                      <Select 
-                        value={period1.split("-")[0]} 
+                      <Select
+                        value={period1.split("-")[0]}
                         onValueChange={(y) => setPeriod1(`${y}-${period1.split("-")[1]}`)}
                       >
                         <SelectTrigger className="h-7 text-xs w-[80px]">
@@ -314,8 +326,8 @@ function AdminDashboard() {
                     </Select>
                   ) : filter === "month" ? (
                     <div className="flex gap-1">
-                      <Select 
-                        value={period2.split("-")[1]} 
+                      <Select
+                        value={period2.split("-")[1]}
                         onValueChange={(m) => setPeriod2(`${period2.split("-")[0]}-${m}`)}
                       >
                         <SelectTrigger className="h-7 text-xs w-[90px]">
@@ -327,8 +339,8 @@ function AdminDashboard() {
                           ))}
                         </SelectContent>
                       </Select>
-                      <Select 
-                        value={period2.split("-")[0]} 
+                      <Select
+                        value={period2.split("-")[0]}
                         onValueChange={(y) => setPeriod2(`${y}-${period2.split("-")[1]}`)}
                       >
                         <SelectTrigger className="h-7 text-xs w-[80px]">
@@ -441,19 +453,58 @@ function AdminDashboard() {
           <div className="flex flex-col gap-4 mt-5">
             {featureImageList && featureImageList.length > 0
               ? featureImageList.map((featureImgItem) => (
-                <div key={featureImgItem._id} className="relative group">
+                <div key={featureImgItem._id} className="relative group overflow-hidden rounded-lg border">
                   <img
                     src={featureImgItem.image}
-                    className="w-full h-[200px] object-cover rounded-lg"
+                    className={`w-full h-[200px] object-cover transition-all duration-300 ${
+                      featureImgItem.enabled === false 
+                        ? "opacity-30 grayscale blur-[1px]" 
+                        : "opacity-100 grayscale-0 blur-0"
+                    }`}
                   />
-                  <Button
-                    onClick={() =>
-                      handleDeleteFeatureImage(featureImgItem._id)
-                    }
-                    className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    Delete
-                  </Button>
+                  
+                  {featureImgItem.enabled === false && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <span className="bg-black/60 text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-sm">
+                        Đã ẩn
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="absolute top-2 right-2 flex gap-2">
+                    <Button
+                      onClick={() =>
+                        handleToggleFeatureImageStatus(
+                          featureImgItem._id,
+                          featureImgItem.enabled
+                        )
+                      }
+                      className={`${
+                        featureImgItem.enabled === false 
+                          ? "bg-yellow-500 hover:bg-yellow-600 text-white" 
+                          : "bg-white/80 hover:bg-white text-black"
+                      } shadow-md opacity-0 group-hover:opacity-100 transition-all`}
+                      size="icon"
+                      variant="ghost"
+                      title={featureImgItem.enabled === false ? "Hiện banner" : "Ẩn banner"}
+                    >
+                      {featureImgItem.enabled === false ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <Button
+                      onClick={() =>
+                        handleDeleteFeatureImage(featureImgItem._id)
+                      }
+                      className="bg-red-500 hover:bg-red-600 text-white opacity-0 group-hover:opacity-100 shadow-md transition-all"
+                      size="icon"
+                      title="Xóa banner"
+                    >
+                      <ShoppingBag className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))
               : null}

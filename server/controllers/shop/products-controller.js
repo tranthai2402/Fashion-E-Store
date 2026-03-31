@@ -83,4 +83,30 @@ const getProductDetails = async (req, res) => {
   }
 };
 
-module.exports = { getFilteredProducts, getProductDetails };
+const getBestSellingProducts = async (req, res) => {
+  try {
+    const { category = "" } = req.query;
+
+    let filters = { isActive: true };
+    if (category) {
+      filters.category = category;
+    }
+
+    const products = await Product.find(filters)
+      .sort({ totalSold: -1 })
+      .limit(4);
+
+    res.status(200).json({
+      success: true,
+      data: products,
+    });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({
+      success: false,
+      message: "Some error occured",
+    });
+  }
+};
+
+module.exports = { getFilteredProducts, getProductDetails, getBestSellingProducts };

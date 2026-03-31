@@ -293,11 +293,10 @@ function ShoppingUserProfile() {
           />
           {profileFeedback && (
             <p
-              className={`text-[11px] tracking-[0.08em] ${
-                profileFeedback.type === "success"
+              className={`text-[11px] tracking-[0.08em] ${profileFeedback.type === "success"
                   ? "text-green-600"
                   : "text-red-600"
-              }`}
+                }`}
             >
               {profileFeedback.text}
             </p>
@@ -378,11 +377,10 @@ function ShoppingUserProfile() {
             </Button>
             {passwordFeedback && (
               <p
-                className={`text-[11px] tracking-[0.08em] ${
-                  passwordFeedback.type === "success"
+                className={`text-[11px] tracking-[0.08em] ${passwordFeedback.type === "success"
                     ? "text-green-600"
                     : "text-red-600"
-                }`}
+                  }`}
               >
                 {passwordFeedback.text}
               </p>

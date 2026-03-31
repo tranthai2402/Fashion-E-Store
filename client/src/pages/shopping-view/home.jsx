@@ -1,10 +1,12 @@
-import { ArrowRight, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, ChevronDown, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { getFeatureImages } from "@/store/common-slice";
 import { fetchPublicVideoSettings } from "@/store/common/video-slice";
+import { fetchBestSellingProducts } from "@/store/shop/products-slice";
 import ShoppingFooter from "@/components/shopping-view/footer";
+import ShoppingProductTile from "@/components/shopping-view/product-tile";
 import menBanner from "@/assets/login_banner_2.jpg";
 import womenBanner from "@/assets/banner_4.jpg";
 import HistoryImg from "@/assets/homephoto_history.avif";
@@ -25,6 +27,14 @@ const categoriesWithImage = [
   },
 ];
 
+const bestSellerCategories = [
+  { id: "", label: "ALL" },
+  { id: "women", label: "WOMEN" },
+  { id: "men", label: "MEN" },
+  { id: "accessories", label: "ACCESSORIES" },
+  { id: "footwear", label: "FOOTWEAR" },
+];
+
 const HERO_VIDEO_SOURCES = [duskVideo, carWindowVideo, telephoneVideo];
 const HERO_VIDEO_PLAYBACK_RATE = 0.8;
 const HERO_VIDEO_SEGMENT_MS = 5000;
@@ -38,18 +48,26 @@ function ShoppingHome() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [currentHeroVideoIndex, setCurrentHeroVideoIndex] = useState(0);
   const [isHeroVideoReady, setIsHeroVideoReady] = useState(false);
+  const [selectedBestSellerCategory, setSelectedBestSellerCategory] = useState("");
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { featureImageList } = useSelector((state) => state.commonFeature);
+  const activeFeatureImageList = featureImageList?.filter(
+    (item) => item.enabled !== false
+  );
   const { homeVideos: configuredHomeVideos } = useSelector(
     (state) => state.commonVideo
   );
+  const { bestSellingProducts, isLoading: isProductsLoading } = useSelector(
+    (state) => state.shopProducts
+  );
+
   const scrollLockRef = useRef(false);
   const scrollLockTimerRef = useRef(null);
   const heroVideoRef = useRef(null);
   const heroVideoSegmentTimerRef = useRef(null);
 
-  const maxIndex = 4;
+  const maxIndex = 5;
   const adminHomeVideoSources = (configuredHomeVideos || [])
     .map((item) => item.url)
     .filter(Boolean);
@@ -96,15 +114,15 @@ function ShoppingHome() {
   }
 
   function handlePrevSlide() {
-    if (!featureImageList?.length) return;
+    if (!activeFeatureImageList?.length) return;
     setCurrentSlide((prev) =>
-      (prev - 1 + featureImageList.length) % featureImageList.length
+      (prev - 1 + activeFeatureImageList.length) % activeFeatureImageList.length
     );
   }
 
   function handleNextSlide() {
-    if (!featureImageList?.length) return;
-    setCurrentSlide((prev) => (prev + 1) % featureImageList.length);
+    if (!activeFeatureImageList?.length) return;
+    setCurrentSlide((prev) => (prev + 1) % activeFeatureImageList.length);
   }
 
   useEffect(() => {
@@ -113,24 +131,28 @@ function ShoppingHome() {
   }, [dispatch]);
 
   useEffect(() => {
+    dispatch(fetchBestSellingProducts(selectedBestSellerCategory));
+  }, [dispatch, selectedBestSellerCategory]);
+
+  useEffect(() => {
     if (currentHeroVideoIndex >= heroVideoSources.length) {
       setCurrentHeroVideoIndex(0);
     }
   }, [currentHeroVideoIndex, heroVideoSources.length]);
 
   useEffect(() => {
-    if (!featureImageList?.length) return;
+    if (!activeFeatureImageList?.length) return;
     const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % featureImageList.length);
+      setCurrentSlide((prev) => (prev + 1) % activeFeatureImageList.length);
     }, 12000);
     return () => clearInterval(timer);
-  }, [featureImageList]);
+  }, [activeFeatureImageList]);
 
   useEffect(() => {
-    if (featureImageList?.length && currentSlide >= featureImageList.length) {
+    if (activeFeatureImageList?.length && currentSlide >= activeFeatureImageList.length) {
       setCurrentSlide(0);
     }
-  }, [featureImageList, currentSlide]);
+  }, [activeFeatureImageList, currentSlide]);
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -187,6 +209,20 @@ function ShoppingHome() {
   }, [currentHeroVideoIndex]);
 
   const handleWheel = (e) => {
+    const scrollableElement = e.target.closest(".overflow-y-auto");
+
+    if (scrollableElement) {
+      const isScrollingDown = e.deltaY > 0;
+      const canScrollDown =
+        scrollableElement.scrollHeight >
+        Math.ceil(scrollableElement.scrollTop + scrollableElement.clientHeight);
+      const canScrollUp = scrollableElement.scrollTop > 0;
+
+      if ((isScrollingDown && canScrollDown) || (!isScrollingDown && canScrollUp)) {
+        return;
+      }
+    }
+
     e.preventDefault();
 
     if (scrollLockRef.current) return;
@@ -222,9 +258,8 @@ function ShoppingHome() {
               setIsHeroVideoReady(true);
               queueNextHeroVideo();
             }}
-            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${
-              isHeroVideoReady ? "opacity-100" : "opacity-0"
-            }`}
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${isHeroVideoReady ? "opacity-100" : "opacity-0"
+              }`}
           >
             <source
               src={heroVideoSources[currentHeroVideoIndex]}
@@ -255,17 +290,16 @@ function ShoppingHome() {
         )}`}
       >
         <section className="relative h-full w-full overflow-hidden rounded-t-3xl shadow-[0_-20px_60px_rgba(0,0,0,0.25)] bg-gray-900">
-          {featureImageList?.length > 0 ? (
-            featureImageList.map((slide, index) => (
+          {activeFeatureImageList?.length > 0 ? (
+            activeFeatureImageList.map((slide, index) => (
               <img
                 src={slide?.image}
                 key={slide?._id || index}
                 alt="Hero visual"
-                className={`absolute inset-0 h-full w-full object-cover transition-all duration-1000 ease-in-out ${
-                  index === currentSlide
+                className={`absolute inset-0 h-full w-full object-cover transition-all duration-1000 ease-in-out ${index === currentSlide
                     ? "opacity-100 scale-100"
                     : "opacity-0 scale-[1.04]"
-                }`}
+                  }`}
               />
             ))
           ) : (
@@ -278,7 +312,7 @@ function ShoppingHome() {
 
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/25 to-black/10" />
 
-          {featureImageList?.length > 1 && (
+          {activeFeatureImageList?.length > 1 && (
             <>
               <button
                 onClick={handlePrevSlide}
@@ -321,15 +355,14 @@ function ShoppingHome() {
             </div>
           </div>
 
-          {featureImageList?.length > 1 && (
+          {activeFeatureImageList?.length > 1 && (
             <div className="absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
-              {featureImageList.map((_, index) => (
+              {activeFeatureImageList.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => setCurrentSlide(index)}
-                  className={`h-[2px] w-8 border-none transition-all duration-300 cursor-pointer ${
-                    index === currentSlide ? "bg-white" : "bg-white/35"
-                  }`}
+                  className={`h-[2px] w-8 border-none transition-all duration-300 cursor-pointer ${index === currentSlide ? "bg-white" : "bg-white/35"
+                    }`}
                 />
               ))}
             </div>
@@ -386,10 +419,78 @@ function ShoppingHome() {
         </section>
       </div>
 
-      {/* ===== Section 4: The Pursuit Of Perfection ===== */}
+      {/* ===== Section 4: Best Sellers ===== */}
       <div
         className={`absolute inset-0 z-30 h-screen w-full ${SECTION_ANIMATION_CLASS} ${getSectionTransformClass(
           3
+        )}`}
+      >
+        <section className="h-screen w-full overflow-hidden rounded-t-3xl bg-white shadow-[0_-20px_60px_rgba(0,0,0,0.15)]">
+          <div className="flex h-full flex-col px-6 pt-24 pb-12 md:px-10">
+            <div className="mx-auto mb-6 flex w-full max-w-7xl flex-col items-center gap-4">
+              <div className="flex w-full items-center justify-between">
+                <div className="hidden w-20 md:block" />
+                <h2
+                  className="text-2xl md:text-3xl font-light uppercase tracking-[0.24em] text-gray-900"
+                  style={{ fontFamily: "'Playfair Display', serif" }}
+                >
+                  Best Sellers
+                </h2>
+                <button
+                  onClick={() =>
+                    selectedBestSellerCategory
+                      ? handleNavigateToListingPage(selectedBestSellerCategory)
+                      : navigate("/shop/listing")
+                  }
+                  className="border-none bg-transparent text-[10px] uppercase tracking-widest text-gray-500 transition-colors hover:text-black cursor-pointer"
+                >
+                  View All
+                </button>
+              </div>
+
+              <div className="flex flex-wrap justify-center gap-4">
+                {bestSellerCategories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setSelectedBestSellerCategory(cat.id)}
+                    className={`border-none bg-transparent py-1 text-[10px] uppercase tracking-[0.16em] transition-all cursor-pointer ${selectedBestSellerCategory === cat.id
+                        ? "text-black font-medium border-b border-black"
+                        : "text-gray-400 hover:text-black"
+                      }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mx-auto w-full max-w-7xl flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide">
+              {isProductsLoading ? (
+                <div className="flex h-64 w-full items-center justify-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                </div>
+              ) : bestSellingProducts?.length > 0 ? (
+                <div className="grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-4 md:gap-x-8">
+                  {bestSellingProducts.map((product) => (
+                    <ShoppingProductTile key={product?._id} product={product} />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex h-64 w-full items-center justify-center">
+                  <p className="text-[10px] uppercase tracking-widest text-gray-400">
+                    No best-selling items found in this category.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      </div>
+
+      {/* ===== Section 5: The Pursuit Of Perfection ===== */}
+      <div
+        className={`absolute inset-0 z-40 h-screen w-full ${SECTION_ANIMATION_CLASS} ${getSectionTransformClass(
+          4
         )}`}
       >
         <section className="h-screen w-full overflow-hidden rounded-t-3xl bg-white shadow-[0_-20px_60px_rgba(0,0,0,0.12)]">
@@ -436,10 +537,10 @@ function ShoppingHome() {
         </section>
       </div>
 
-      {/* ===== Section 5: Footer ===== */}
+      {/* ===== Section 6: Footer ===== */}
       <div
-        className={`absolute inset-x-0 bottom-0 z-40 w-full ${SECTION_ANIMATION_CLASS} ${getSectionTransformClass(
-          4
+        className={`absolute inset-x-0 bottom-0 z-50 w-full ${SECTION_ANIMATION_CLASS} ${getSectionTransformClass(
+          5
         )}`}
       >
         <div className="rounded-t-3xl bg-white shadow-[0_-20px_60px_rgba(0,0,0,0.1)] overflow-hidden">

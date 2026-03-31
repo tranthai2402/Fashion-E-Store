@@ -40,6 +40,18 @@ export const deleteFeatureImage = createAsyncThunk(
   }
 );
 
+export const updateFeatureImageStatus = createAsyncThunk(
+  "/order/updateFeatureImageStatus",
+  async ({ id, enabled }) => {
+    const response = await axios.patch(
+      `http://localhost:5000/api/common/feature/update-status/${id}`,
+      { enabled }
+    );
+
+    return response.data;
+  }
+);
+
 const commonSlice = createSlice({
   name: "commonSlice",
   initialState,
@@ -73,6 +85,21 @@ const commonSlice = createSlice({
         state.isLoading = false;
       })
       .addCase(deleteFeatureImage.rejected, (state) => {
+        state.isLoading = false;
+      })
+      .addCase(updateFeatureImageStatus.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(updateFeatureImageStatus.fulfilled, (state, action) => {
+        state.isLoading = false;
+        const index = state.featureImageList.findIndex(
+          (item) => item._id === action.payload.data._id
+        );
+        if (index !== -1) {
+          state.featureImageList[index] = action.payload.data;
+        }
+      })
+      .addCase(updateFeatureImageStatus.rejected, (state) => {
         state.isLoading = false;
       });
   },

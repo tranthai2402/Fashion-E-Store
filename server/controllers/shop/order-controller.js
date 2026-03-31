@@ -292,6 +292,13 @@ const capturePayment = async (req, res) => {
       order.stockReserved = true;
     }
 
+    // Update totalSold for each product
+    for (const item of order.cartItems) {
+      await Product.findByIdAndUpdate(item.productId, {
+        $inc: { totalSold: item.quantity },
+      });
+    }
+
     const cart = await Cart.findById(order.cartId);
     if (cart) {
       order.cartItems.forEach((orderedItem) => {
@@ -399,7 +406,7 @@ const checkProductPurchase = async (req, res) => {
     const order = await Order.findOne({
       userId,
       "cartItems.productId": productId,
-      orderStatus: { $in: ["inprocess", "confirmed", "delivered"] },
+      orderStatus: { $in: ["inProcess", "confirmed", "delivered"] },
     });
 
     res.status(200).json({
