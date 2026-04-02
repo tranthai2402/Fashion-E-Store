@@ -233,8 +233,8 @@ const createOrder = async (req, res) => {
         payment_method_types: ["card"],
         line_items: line_items,
         mode: "payment",
-        success_url: `http://localhost:5173/shop/stripe-return?orderId=${newlyCreatedOrder._id}&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: "http://localhost:5173/shop/stripe-cancel",
+        success_url: `${process.env.CLIENT_URL}/shop/stripe-return?orderId=${newlyCreatedOrder._id}&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.CLIENT_URL}/shop/stripe-cancel`,
       });
     } catch (processingError) {
       if (reservedItems.length > 0) {

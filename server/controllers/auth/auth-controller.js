@@ -458,7 +458,7 @@ const googleAuthCallback = (req, res) => {
   try {
     const user = req.user;
     if (!user) {
-      return res.redirect("http://localhost:5173/auth/login?error=google_auth_failed");
+      return res.redirect(`${process.env.CLIENT_URL}/auth/login?error=google_auth_failed`);
     }
 
     const token = jwt.sign(
@@ -474,10 +474,10 @@ const googleAuthCallback = (req, res) => {
 
     res
       .cookie("token", token, { httpOnly: true, secure: false })
-      .redirect("http://localhost:5173/shop/home");
+      .redirect(`${process.env.CLIENT_URL}/shop/home`);
   } catch (error) {
     console.log(error);
-    res.redirect("http://localhost:5173/auth/login?error=server_error");
+    res.redirect(`${process.env.CLIENT_URL}/auth/login?error=server_error`);
   }
 };
 

@@ -32,7 +32,7 @@ mongoose.connection.on("error", (err) => console.log("Mongoose connection error:
 mongoose.connection.on("disconnected", () => console.log("Mongoose disconnected"));
 
 mongoose
-  .connect("mongodb+srv://phamminhchuong2323_db_user:12345678%40@cluster0.lgzrgqv.mongodb.net/?appName=Cluster0")
+  .connect(process.env.MONGODB_URI)
   .then(() => console.log("MongoDB initial connection success"))
   .catch((error) => console.log("MongoDB initial connection error:", error));
 
@@ -54,7 +54,7 @@ app.use((req, res, next) => {
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: process.env.CLIENT_URL,
     methods: ["GET", "POST", "DELETE", "PUT", "PATCH"],
     allowedHeaders: [
       "Content-Type",
