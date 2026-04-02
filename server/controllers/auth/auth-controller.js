@@ -386,17 +386,17 @@ const changeUserPassword = async (req, res) => {
     const userId = req.user?.id;
     const { currentPassword, newPassword } = req.body;
 
-    if (!currentPassword || !newPassword) {
+    if (!newPassword) {
       return res.status(400).json({
         success: false,
-        message: "Current password and new password are required",
+        message: "Mật khẩu mới là bắt buộc",
       });
     }
 
     if (String(newPassword).length < 6) {
       return res.status(400).json({
         success: false,
-        message: "New password must be at least 6 characters",
+        message: "Mật khẩu mới phải có ít nhất 6 ký tự",
       });
     }
 
@@ -404,25 +404,37 @@ const changeUserPassword = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "User not found!",
+        message: "Không tìm thấy người dùng!",
       });
     }
 
-    const isMatch = await bcrypt.compare(currentPassword, user.password);
-    if (!isMatch) {
-      return res.status(400).json({
-        success: false,
-        message: "Current password is incorrect",
-      });
-    }
+    // Nếu người dùng đã có mật khẩu (người dùng đăng ký thường hoặc đã set pass)
+    if (user.password) {
+      if (!currentPassword) {
+        return res.status(400).json({
+          success: false,
+          message: "Vui lòng nhập mật khẩu hiện tại",
+        });
+      }
 
-    const isSamePassword = await bcrypt.compare(newPassword, user.password);
-    if (isSamePassword) {
-      return res.status(400).json({
-        success: false,
-        message: "New password must be different from current password",
-      });
+      const isMatch = await bcrypt.compare(currentPassword, user.password);
+      if (!isMatch) {
+        return res.status(400).json({
+          success: false,
+          message: "Mật khẩu hiện tại không đúng",
+        });
+      }
+
+      const isSamePassword = await bcrypt.compare(newPassword, user.password);
+      if (isSamePassword) {
+        return res.status(400).json({
+          success: false,
+          message: "Mật khẩu mới phải khác mật khẩu hiện tại",
+        });
+      }
     }
+    // Nếu người dùng chưa có mật khẩu (thường là đăng nhập qua Google lần đầu)
+    // Cho phép thiết lập mật khẩu mà không cần mật khẩu hiện tại
 
     const hashedPassword = await bcrypt.hash(newPassword, 12);
     user.password = hashedPassword;
@@ -430,13 +442,13 @@ const changeUserPassword = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Password updated successfully",
+      message: user.password ? "Cập nhật mật khẩu thành công" : "Thiết lập mật khẩu thành công",
     });
   } catch (error) {
     console.log(error);
     return res.status(500).json({
       success: false,
-      message: "Some error occured",
+      message: "Đã xảy ra lỗi khi cập nhật mật khẩu",
     });
   }
 };

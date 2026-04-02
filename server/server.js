@@ -26,13 +26,31 @@ const shopLookbookRouter = require("./routes/shop/lookbook-routes");
 //create a database connection -> u can also
 //create a separate file for this and then import/use that file here
 
+// Database connection listeners
+mongoose.connection.on("connected", () => console.log("Mongoose connected to DB"));
+mongoose.connection.on("error", (err) => console.log("Mongoose connection error:", err));
+mongoose.connection.on("disconnected", () => console.log("Mongoose disconnected"));
+
 mongoose
   .connect("mongodb+srv://phamminhchuong2323_db_user:12345678%40@cluster0.lgzrgqv.mongodb.net/?appName=Cluster0")
-  .then(() => console.log("MongoDB connected"))
-  .catch((error) => console.log(error));
+  .then(() => console.log("MongoDB initial connection success"))
+  .catch((error) => console.log("MongoDB initial connection error:", error));
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Monitoring middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    const elapsed = Date.now() - start;
+    if (elapsed > 100) {
+      console.log(`[PERF] ${req.method} ${req.originalUrl} - ${elapsed}ms`);
+    }
+  });
+  next();
+});
+
 
 app.use(
   cors({

@@ -41,4 +41,9 @@ const ProductSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+ProductSchema.index({ category: 1 });
+ProductSchema.index({ brand: 1 });
+ProductSchema.index({ isActive: 1 });
+ProductSchema.index({ title: "text", description: "text" }); // For keyword search
+
 module.exports = mongoose.model("Product", ProductSchema);
