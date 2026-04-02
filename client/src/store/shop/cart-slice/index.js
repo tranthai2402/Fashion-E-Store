@@ -31,10 +31,13 @@ export const addToCart = createAsyncThunk(
 
 export const fetchCartItems = createAsyncThunk(
   "cart/fetchCartItems",
-  async (userId, { rejectWithValue }) => {
+  async ({ userId, voucherCode, selectedItems }, { rejectWithValue }) => {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/shop/cart/get/${userId}`
+        `http://localhost:5000/api/shop/cart/get/${userId}`,
+        {
+          params: { voucherCode, selectedItems }
+        }
       );
 
       return response.data;

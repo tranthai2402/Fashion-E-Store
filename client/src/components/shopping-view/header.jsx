@@ -174,7 +174,7 @@ function HeaderRightContent({ isOverlay = false }) {
   }
 
   useEffect(() => {
-    dispatch(fetchCartItems(user?.id));
+    if (user?.id) dispatch(fetchCartItems({ userId: user?.id }));
   }, [dispatch, user?.id]);
 
   useEffect(() => {
@@ -315,7 +315,7 @@ function ShoppingHeader() {
 
   return (
     <header
-      className={`fixed top-0 left-0 w-full z-[60] transition-colors duration-500 ${
+      className={`fixed top-0 left-0 w-full z-40 transition-colors duration-500 ${
         isOverlay
           ? "bg-transparent border-transparent"
           : "bg-white border-b border-gray-200"

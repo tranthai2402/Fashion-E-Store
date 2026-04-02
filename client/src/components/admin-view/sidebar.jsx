@@ -6,6 +6,7 @@ import {
   ShoppingBasket,
   Users,
   Clapperboard,
+  Tag,
 } from "lucide-react";
 import { Fragment } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -47,6 +48,12 @@ const adminSidebarMenuItems = [
     label: "Videos",
     path: "/admin/videos",
     icon: <Clapperboard />,
+  },
+  {
+    id: "promotions",
+    label: "Sales & Promotions",
+    path: "/admin/promotions",
+    icon: <Tag />,
   },
 ];
 

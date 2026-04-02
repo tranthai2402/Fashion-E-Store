@@ -23,7 +23,7 @@ function StripeReturnPage() {
         sessionStorage.removeItem("currentOrderId");
         if (data?.payload?.success) {
           if (user?.id) {
-            dispatch(fetchCartItems(user?.id));
+            dispatch(fetchCartItems({ userId: user?.id }));
           } else {
             dispatch(clearCart());
           }

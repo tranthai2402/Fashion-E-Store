@@ -167,11 +167,14 @@ async function releaseReservedStock(items = []) {
   }
 }
 
+const Voucher = require("../../models/Voucher");
+const Promotion = require("../../models/Promotion");
+
 const createOrder = async (req, res) => {
   try {
     const {
       userId, cartItems, addressInfo, orderStatus, totalAmount,
-      orderDate, orderUpdateDate, cartId,
+      orderDate, orderUpdateDate, cartId, discountAmount, appliedPromotions
     } = req.body;
 
     if (!stripe) {
@@ -212,6 +215,8 @@ const createOrder = async (req, res) => {
         orderDate,
         orderUpdateDate,
         stockReserved: true,
+        discountAmount: discountAmount || 0,
+        appliedPromotions: appliedPromotions || []
       });
 
       await newlyCreatedOrder.save();
@@ -228,14 +233,27 @@ const createOrder = async (req, res) => {
         quantity: item.quantity,
       }));
 
-      // 3. Tạo Stripe Checkout Session
-      stripeSession = await stripe.checkout.sessions.create({
+      // Nếu có giảm giá từ Voucher, tạo một coupon dùng 1 lần trên Stripe
+      const sessionConfig = {
         payment_method_types: ["card"],
         line_items: line_items,
         mode: "payment",
         success_url: `${process.env.CLIENT_URL}/shop/stripe-return?orderId=${newlyCreatedOrder._id}&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${process.env.CLIENT_URL}/shop/stripe-cancel`,
-      });
+      };
+
+      if (discountAmount > 0) {
+        const stripeCoupon = await stripe.coupons.create({
+          amount_off: Math.round(discountAmount * 100),
+          currency: "usd",
+          duration: "once",
+          name: "Voucher / Khuyến mãi",
+        });
+        sessionConfig.discounts = [{ coupon: stripeCoupon.id }];
+      }
+
+      // 3. Tạo Stripe Checkout Session
+      stripeSession = await stripe.checkout.sessions.create(sessionConfig);
     } catch (processingError) {
       if (reservedItems.length > 0) {
         await releaseReservedStock(reservedItems);
@@ -297,6 +315,21 @@ const capturePayment = async (req, res) => {
       await Product.findByIdAndUpdate(item.productId, {
         $inc: { totalSold: item.quantity },
       });
+    }
+
+    // Update Voucher/Promotion usages
+    if (order.appliedPromotions && order.appliedPromotions.length > 0) {
+      for (const promo of order.appliedPromotions) {
+        if (promo.promotionId) {
+          await Promotion.findByIdAndUpdate(promo.promotionId, { $inc: { usedCount: 1 } });
+        }
+        if (promo.voucherCode) {
+          await Voucher.findOneAndUpdate(
+            { code: promo.voucherCode },
+            { $inc: { usedCount: 1 } }
+          );
+        }
+      }
     }
 
     const cart = await Cart.findById(order.cartId);

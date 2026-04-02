@@ -18,6 +18,8 @@ const adminAnalyticsRouter = require("./routes/admin/analytics-routes");
 const adminUserRouter = require("./routes/admin/user-routes");
 const adminLookbookRouter = require("./routes/admin/lookbook-routes");
 const adminVideoRouter = require("./routes/admin/video-routes");
+const adminPromotionRouter = require("./routes/admin/promotion-routes");
+const shopPromotionRouter = require("./routes/shop/promotion-routes");
 
 const commonFeatureRouter = require("./routes/common/feature-routes");
 const commonVideoRouter = require("./routes/common/video-routes");
@@ -77,6 +79,8 @@ app.use("/api/admin/analytics", adminAnalyticsRouter);
 app.use("/api/admin/users", adminUserRouter);
 app.use("/api/admin/lookbook", adminLookbookRouter);
 app.use("/api/admin/videos", adminVideoRouter);
+app.use("/api/admin/promotions", adminPromotionRouter);
+app.use("/api/shop/promotions", shopPromotionRouter);
 
 app.use("/api/shop/products", shopProductsRouter);
 app.use("/api/shop/cart", shopCartRouter);

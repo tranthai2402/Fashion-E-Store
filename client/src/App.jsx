@@ -10,6 +10,7 @@ import AdminFeatures from "./pages/admin-view/features";
 import AdminUsers from "./pages/admin-view/users";
 import AdminLookbook from "./pages/admin-view/lookbook";
 import AdminVideos from "./pages/admin-view/videos";
+import AdminPromotions from "./pages/admin-view/promotions";
 import ShoppingLayout from "./components/shopping-view/layout";
 import NotFound from "./pages/not-found";
 import ShoppingHome from "./pages/shopping-view/home";
@@ -85,6 +86,7 @@ function App() {
           <Route path="videos" element={<AdminVideos />} />
           <Route path="users" element={<AdminUsers />} />
           <Route path="lookbook" element={<AdminLookbook />} />
+          <Route path="promotions" element={<AdminPromotions />} />
         </Route>
         <Route
           path="/shop"

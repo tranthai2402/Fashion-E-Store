@@ -12,6 +12,7 @@ function UserCartItemsContent({
   cartItem,
   enableProductNavigation = false,
   onProductNavigate,
+  discount = 0,
 }) {
   const { user } = useSelector((state) => state.auth);
   const { cartItems, selectedItems = [] } = useSelector((state) => state.shopCart);
@@ -221,6 +222,11 @@ function UserCartItemsContent({
                 Color {cartItem.color}
               </span>
             ) : null}
+            {discount > 0 && (
+              <span className="text-[9px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded-sm w-fit mt-1">
+                ĐÃ ÁP DỤNG MÃ GIẢM GIÁ
+              </span>
+            )}
           </div>
         </button>
         <div className="mt-4 flex items-center gap-4">
@@ -256,13 +262,27 @@ function UserCartItemsContent({
         </div>
       </div>
       <div className="flex flex-col items-end justify-between self-stretch">
-        <p className="text-[11px] font-medium tracking-[0.08em] text-gray-900">
-          $
-          {(
-            (cartItem?.salePrice > 0 ? cartItem?.salePrice : cartItem?.price) *
-            cartItem?.quantity
-          ).toFixed(2)}
-        </p>
+        <div className="text-right">
+          <p className="text-[11px] font-medium tracking-[0.08em] text-gray-900">
+            $
+            {(
+              (cartItem?.salePrice > 0 ? cartItem?.salePrice : cartItem?.price) * cartItem?.quantity - discount
+            ).toFixed(2)}
+          </p>
+          {discount > 0 && (
+            <p className="text-[10px] text-green-600 font-medium">
+              -${discount.toFixed(2)}
+            </p>
+          )}
+          {discount > 0 && (
+            <p className="text-[9px] text-gray-400 line-through">
+              $
+              {(
+                (cartItem?.salePrice > 0 ? cartItem?.salePrice : cartItem?.price) * cartItem?.quantity
+              ).toFixed(2)}
+            </p>
+          )}
+        </div>
         <button
           onClick={() => handleCartItemDelete(cartItem)}
           className="text-gray-400 hover:text-black transition-colors"

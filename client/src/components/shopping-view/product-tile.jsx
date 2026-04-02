@@ -21,13 +21,20 @@ function ShoppingProductTile({ product }) {
       </div>
 
       {/* Label */}
-      <div className="pt-4 pb-2 text-center">
+      <div className="pt-4 pb-2 text-center px-2">
         <p className="text-[11px] font-normal uppercase tracking-[0.18em] text-gray-900 leading-snug">
           {product?.title}
         </p>
-        <p className="text-[11px] font-normal tracking-[0.12em] text-gray-500 mt-1">
-          ${displayPrice}
-        </p>
+        <div className="flex justify-center items-center gap-2 mt-1">
+          <p className={`text-[11px] font-normal tracking-[0.12em] text-gray-500 ${product?.salePrice > 0 ? 'line-through opacity-70' : ''}`}>
+            ${product?.price}
+          </p>
+          {product?.salePrice > 0 && (
+            <p className="text-[11px] font-semibold tracking-[0.12em] text-gray-900">
+              ${product?.salePrice}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

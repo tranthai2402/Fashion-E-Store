@@ -101,7 +101,7 @@ function ProductDetailsDialog({ open, setOpen, productDetails }) {
       })
     ).then((data) => {
       if (data?.payload?.success) {
-        dispatch(fetchCartItems(user?.id));
+        dispatch(fetchCartItems({ userId: user?.id }));
         toast({
           title: "Product is added to cart",
         });

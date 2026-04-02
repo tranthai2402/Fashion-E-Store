@@ -1,0 +1,235 @@
+const Promotion = require("../models/Promotion");
+const Voucher = require("../models/Voucher");
+const Order = require("../models/Order");
+
+/**
+ * Áp dụng điều kiện và tính toán giảm giá cho giỏ hàng
+ * @param {Array} cartItems - Danh sách sản phẩm trong giỏ (cần populates productId)
+ * @param {Object} user - User object (chứa role, lịch sử mua hàng để check new_user/vip nếu cần)
+ * @param {String} voucherCode - (Optional) Mã ứng dụng riêng
+ */
+const calculateCartDiscounts = async (cartItems, user, voucherCode = null) => {
+  let subtotal = 0;
+  
+  // Tính tổng tiền gốc
+  cartItems.forEach((item) => {
+    // Nếu sản phẩm có giá sale (salePrice cũ), ta sử dụng salePrice hoặc price gốc tùy logic.
+    // Thường promotion sẽ áp dụng trên tổng tạm tính (giá gốc hoặc giá sale mặc định).
+    const priceToUse = item.salePrice > 0 ? item.salePrice : item.price;
+    subtotal += priceToUse * item.quantity;
+  });
+
+  let discountTotal = 0;
+  let appliedPromotions = [];
+  let freeShipping = false;
+
+  const now = new Date();
+
+  // 1. Lấy tất cả các Automatic Promotions đang active
+  const activePromotions = await Promotion.find({
+    status: "active",
+    type: { $in: ["automatic", "flash_sale", "seasonal"] },
+    startDate: { $lte: now },
+    endDate: { $gte: now },
+  }).sort({ priority: -1 }); // Ưu tiên cao xuống thấp
+
+  // 2. Nếu có voucher, kiểm tra và lấy thêm Promotion của voucher đó
+  let voucherPromo = null;
+  let appliedVoucher = null;
+  if (voucherCode) {
+    const voucher = await Voucher.findOne({ code: voucherCode, status: "active" }).populate("promotionId");
+    if (voucher) {
+      if (voucher.usageLimit && voucher.usedCount >= voucher.usageLimit) {
+        throw new Error("Mã giảm giá đã hết lượt sử dụng");
+      }
+      
+      const promo = voucher.promotionId;
+      if (promo && promo.status === "active" && promo.startDate <= now && promo.endDate >= now) {
+        voucherPromo = promo;
+        appliedVoucher = voucher;
+      } else {
+        throw new Error("Chương trình của mã giảm giá này đã hết hạn hoặc không hoạt động");
+      }
+    } else {
+      throw new Error("Mã giảm giá không hợp lệ");
+    }
+  }
+
+  // Kết hợp danh sách (ưa tiên voucher > auto promo)
+  const allPromos = voucherPromo ? [voucherPromo, ...activePromotions] : activePromotions;
+
+  // 3. Quét từng Promotion để áp dụng
+  for (const promo of allPromos) {
+    // --- EVALUATE CONDITIONS ---
+    if (promo.conditions) {
+      const { minOrderValue, minQuantity, applicableProducts, applicableCategories, targetAudience } = promo.conditions;
+
+      if (minOrderValue > 0 && subtotal < minOrderValue) {
+        if (voucherPromo && promo._id.equals(voucherPromo._id)) {
+          throw new Error(`Mã giảm giá yêu cầu đơn hàng tối thiểu $${minOrderValue}`);
+        }
+        continue;
+      }
+      
+      const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+      if (minQuantity > 0 && totalItems < minQuantity) {
+        if (voucherPromo && promo._id.equals(voucherPromo._id)) {
+          throw new Error(`Mã giảm giá yêu cầu tối thiểu ${minQuantity} sản phẩm`);
+        }
+        continue;
+      }
+
+      // Xử lý Target Audience (All, VIP, New_User) -> Logic kiểm tra custom tùy định nghĩa User
+      if (targetAudience === "new_user" || targetAudience === "vip") {
+        // Cần logic so sánh với field "role" hoặc "order_count" của User
+        // Tạm thời nếu user ko thỏa, skip.
+      }
+
+      // 3.1 Check usagePerUser
+      if (promo.usagePerUser > 0 && user && user._id) {
+        const userUsageCount = await Order.countDocuments({
+          userId: user._id,
+          "appliedPromotions.promotionId": promo._id,
+          paymentStatus: "paid" // Chỉ tính những đơn đã thanh toán thành công
+        });
+
+        if (userUsageCount >= promo.usagePerUser) {
+          if (voucherPromo && promo._id.equals(voucherPromo._id)) {
+            throw new Error(`Bạn đã hết lượt sử dụng mã giảm giá này (Tối đa ${promo.usagePerUser} lần)`);
+          }
+          continue;
+        }
+      }
+    }
+
+    // --- EVALUATE ACTIONS ---
+    // Kiểm tra tính hợp lệ trên danh sách sản phẩm cụ thể
+    const { action } = promo;
+    let applicableAmount = subtotal;
+
+    // Nếu khuyến mãi chỉ áp dụng cho một số sản phẩm / danh mục
+    let hasApplicableItems = true;
+    const productCond = promo.conditions?.applicableProducts || [];
+    const categoryCond = promo.conditions?.applicableCategories || [];
+    const isRestricted = productCond.length > 0 || categoryCond.length > 0;
+
+    const getEligibleItems = (items) => {
+      if (!isRestricted) return items;
+      return items.filter(item => {
+        const itemProdId = item.productId._id?.toString() || item.productId.toString();
+        const isProductMatch = productCond.some(pId => pId.toString() === itemProdId);
+        const isCategoryMatch = categoryCond.some(cat => cat && item.category && cat.toLowerCase() === item.category.toLowerCase());
+        return isProductMatch || isCategoryMatch;
+      });
+    };
+
+    const eligibleItems = getEligibleItems(cartItems);
+
+    if (isRestricted && eligibleItems.length === 0) {
+      hasApplicableItems = false;
+    } else {
+      applicableAmount = eligibleItems.reduce((acc, item) => {
+        const p = item.salePrice > 0 ? item.salePrice : item.price;
+        return acc + (p * item.quantity);
+      }, 0);
+    }
+
+    if (!hasApplicableItems) {
+      if (voucherPromo && promo._id.equals(voucherPromo._id)) {
+        throw new Error("Mã giảm giá không áp dụng cho các sản phẩm trong giỏ");
+      }
+      continue;
+    }
+
+    // Tính mức giảm và breakdown cho từng sản phẩm
+    let discountAmountThisPromo = 0;
+    let productBreakdown = [];
+
+    if (action.discountType === "percentage") {
+      const discountPercentage = action.discountValue / 100;
+      let totalDiscountBeforeCap = 0;
+      
+      eligibleItems.forEach(item => {
+        const price = item.salePrice > 0 ? item.salePrice : item.price;
+        const itemTotal = price * item.quantity;
+        let itemDiscount = itemTotal * discountPercentage;
+        productBreakdown.push({
+          productId: item.productId._id?.toString() || item.productId.toString(),
+          size: item.size,
+          color: item.color,
+          discountAmount: itemDiscount
+        });
+        totalDiscountBeforeCap += itemDiscount;
+      });
+
+      discountAmountThisPromo = totalDiscountBeforeCap;
+      if (action.maxDiscountAmount > 0 && discountAmountThisPromo > action.maxDiscountAmount) {
+        // Nếu vượt quá maxDiscountAmount, tỉ lệ lại breakdown
+        const ratio = action.maxDiscountAmount / discountAmountThisPromo;
+        productBreakdown = productBreakdown.map(b => ({
+          ...b,
+          discountAmount: b.discountAmount * ratio
+        }));
+        discountAmountThisPromo = action.maxDiscountAmount;
+      }
+    } else if (action.discountType === "fixed_amount") {
+      discountAmountThisPromo = action.discountValue;
+      if (discountAmountThisPromo > applicableAmount) {
+        discountAmountThisPromo = applicableAmount;
+      }
+
+      // Phân bổ chiết khấu cố định theo tỉ lệ giá trị sản phẩm
+      eligibleItems.forEach(item => {
+        const price = item.salePrice > 0 ? item.salePrice : item.price;
+        const itemTotal = price * item.quantity;
+        const itemRatio = itemTotal / applicableAmount;
+        productBreakdown.push({
+          productId: item.productId._id?.toString() || item.productId.toString(),
+          size: item.size,
+          color: item.color,
+          discountAmount: discountAmountThisPromo * itemRatio
+        });
+      });
+    } else if (action.discountType === "free_shipping") {
+      freeShipping = true;
+    }
+
+    // Ghi nhận nếu có giảm
+    if (discountAmountThisPromo > 0 || freeShipping) {
+      discountTotal += discountAmountThisPromo;
+      appliedPromotions.push({
+        promotionId: promo._id,
+        name: promo.name,
+        discountAmount: discountAmountThisPromo,
+        voucherCode: voucherPromo && promo._id.equals(voucherPromo._id) ? voucherCode : null,
+        productBreakdown // Trả về breakdown để hiển thị ở frontend
+      });
+
+      // LUÔN LUÔN DỪNG LẠI sau khi áp dụng 1 ưu đãi (Chỉ được dùng 1 mã/1 ưu đãi một lần)
+      break;
+    }
+  }
+
+  // Đảm bảo giảm không quá subtotal
+  if (discountTotal > subtotal) {
+    discountTotal = subtotal;
+  }
+
+  const grandTotal = subtotal - discountTotal;
+
+  return {
+    subtotal,
+    discountTotal,
+    grandTotal,
+    freeShipping,
+    appliedPromotions,
+    voucherDetails: appliedVoucher ? {
+      code: appliedVoucher.code,
+      id: appliedVoucher._id
+    } : null
+  };
+};
+
+module.exports = {
+  calculateCartDiscounts
+};
