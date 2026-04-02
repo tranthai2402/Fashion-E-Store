@@ -19,11 +19,13 @@ const adminUserRouter = require("./routes/admin/user-routes");
 const adminLookbookRouter = require("./routes/admin/lookbook-routes");
 const adminVideoRouter = require("./routes/admin/video-routes");
 const adminPromotionRouter = require("./routes/admin/promotion-routes");
+const adminNewsletterRouter = require("./routes/admin/newsletter-routes");
 const shopPromotionRouter = require("./routes/shop/promotion-routes");
 
 const commonFeatureRouter = require("./routes/common/feature-routes");
 const commonVideoRouter = require("./routes/common/video-routes");
 const shopLookbookRouter = require("./routes/shop/lookbook-routes");
+const shopNewsletterRouter = require("./routes/shop/newsletter-routes");
 
 //create a database connection -> u can also
 //create a separate file for this and then import/use that file here
@@ -80,6 +82,7 @@ app.use("/api/admin/users", adminUserRouter);
 app.use("/api/admin/lookbook", adminLookbookRouter);
 app.use("/api/admin/videos", adminVideoRouter);
 app.use("/api/admin/promotions", adminPromotionRouter);
+app.use("/api/admin/newsletter", adminNewsletterRouter);
 app.use("/api/shop/promotions", shopPromotionRouter);
 
 app.use("/api/shop/products", shopProductsRouter);
@@ -89,6 +92,7 @@ app.use("/api/shop/order", shopOrderRouter);
 app.use("/api/shop/search", shopSearchRouter);
 app.use("/api/shop/review", shopReviewRouter);
 app.use("/api/shop/lookbook", shopLookbookRouter);
+app.use("/api/shop/newsletter", shopNewsletterRouter);
 
 app.use("/api/common/feature", commonFeatureRouter);
 app.use("/api/common/videos", commonVideoRouter);

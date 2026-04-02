@@ -7,6 +7,7 @@ import {
   Users,
   Clapperboard,
   Tag,
+  BadgePercent,
 } from "lucide-react";
 import { Fragment } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -54,6 +55,12 @@ const adminSidebarMenuItems = [
     label: "Sales & Promotions",
     path: "/admin/promotions",
     icon: <Tag />,
+  },
+  {
+    id: "newsletter",
+    label: "Newsletter & Emails",
+    path: "/admin/newsletter",
+    icon: <BadgePercent />,
   },
 ];
 

@@ -35,6 +35,11 @@ const VoucherSchema = new mongoose.Schema(
       enum: ["active", "disabled"],
       default: "active",
     },
+    restrictedToEmail: {
+      type: String, // If set, only users with this email can use this voucher
+      lowercase: true,
+      trim: true,
+    },
   },
   { timestamps: true }
 );

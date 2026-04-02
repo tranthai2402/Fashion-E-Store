@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from "react-router-dom";
 import ShoppingHeader from "./header";
 import ShoppingFooter from "./footer";
+import NewsletterSidebar from "./newsletter-sidebar";
 
 function ShoppingLayout() {
   const location = useLocation();
@@ -11,6 +12,7 @@ function ShoppingLayout() {
       <div className="bg-white">
         <ShoppingHeader />
         <Outlet />
+        <NewsletterSidebar />
       </div>
     );
   }
@@ -21,6 +23,7 @@ function ShoppingLayout() {
       <main className="flex flex-col w-full flex-1 pt-14">
         <Outlet />
       </main>
+      <NewsletterSidebar />
       <ShoppingFooter />
     </div>
   );

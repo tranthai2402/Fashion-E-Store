@@ -39,8 +39,18 @@ const calculateCartDiscounts = async (cartItems, user, voucherCode = null) => {
   if (voucherCode) {
     const voucher = await Voucher.findOne({ code: voucherCode, status: "active" }).populate("promotionId");
     if (voucher) {
+      // Kiểm tra giới hạn lượt dùng tổng quát
       if (voucher.usageLimit && voucher.usedCount >= voucher.usageLimit) {
         throw new Error("Mã giảm giá đã hết lượt sử dụng");
+      }
+      
+      // KIỂM TRA RÀNG BUỘC EMAIL (Tối ưu hóa bảo mật mã cá nhân)
+      if (voucher.restrictedToEmail && user && user.email) {
+        if (voucher.restrictedToEmail.toLowerCase() !== user.email.toLowerCase()) {
+          throw new Error("Mã giảm giá này chỉ dành riêng cho chủ sở hữu email đã đăng ký");
+        }
+      } else if (voucher.restrictedToEmail && !user) {
+        throw new Error("Vui lòng đăng nhập bằng email đã nhận mã để sử dụng voucher này");
       }
       
       const promo = voucher.promotionId;
