@@ -1,7 +1,7 @@
 const Cart = require("../../models/Cart");
 const Product = require("../../models/Product");
 const User = require("../../models/User");
-const { calculateCartDiscounts } = require("../../helpers/promotionCalculator");
+const { calculateCartDiscounts, enrichProductsWithAutomaticPromotions } = require("../../helpers/promotionCalculator");
 
 
 const normalizeValue = (value) => String(value || "").trim().toLowerCase();
@@ -202,12 +202,26 @@ const fetchCartItems = async (req, res) => {
     let calculations = { subtotal: 0, discountTotal: 0, grandTotal: 0, appliedPromotions: [] };
     let voucherError = null;
 
+    // Enrich items with automatic promotions before calculations
+    const productsToEnrich = populateCartItems.map(item => ({
+      _id: item.productId,
+      price: item.price,
+      salePrice: item.salePrice,
+      category: item.category
+    }));
+    const enrichedProducts = await enrichProductsWithAutomaticPromotions(productsToEnrich);
+    
+    // Update populateCartItems with enriched salePrices
+    populateCartItems.forEach((item, idx) => {
+      item.salePrice = enrichedProducts[idx].salePrice;
+    });
+
     // Lọc danh sách sản phẩm dựa trên selectedItems nếu được cung cấp (dùng cho trang Checkout)
     let itemsToCalculate = populateCartItems;
-    if (req.query.selectedItems) {
+    if (req.query.selectedItems !== undefined) {
       const selectedKeys = Array.isArray(req.query.selectedItems) 
         ? req.query.selectedItems 
-        : [req.query.selectedItems];
+        : (req.query.selectedItems === "" ? [] : [req.query.selectedItems]);
         
       itemsToCalculate = populateCartItems.filter(item => {
         const itemKey = `${item.productId}-${item.size || ''}-${item.color || ''}`;

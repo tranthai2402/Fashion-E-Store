@@ -11,10 +11,10 @@ import { useToast } from "@/components/ui/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { fetchCartItems, clearSelectedItems, selectAllItems } from "@/store/shop/cart-slice";
+import { fetchCartItems, clearCheckoutItems, toggleCheckoutSelectItem, selectAllCheckoutItems } from "@/store/shop/cart-slice";
 
 function ShoppingCheckout() {
-  const { cartItems, selectedItems = [] } = useSelector((state) => state.shopCart);
+  const { cartItems, checkoutItems = [] } = useSelector((state) => state.shopCart);
   const { user } = useSelector((state) => state.auth);
   const { approvalURL } = useSelector((state) => state.shopOrder);
   const [currentSelectedAddress, setCurrentSelectedAddress] = useState(null);
@@ -37,79 +37,69 @@ function ShoppingCheckout() {
         })
         .catch((err) => console.log("FETCH VOUCHERS ERR:", err));
     }
+
+    // Cleanup: Clear checkout snapshot when leaving checkout page
+    return () => {
+      dispatch(clearCheckoutItems()); 
+    };
       
-  }, [dispatch, user?.id]); // Only run on mount to fetch vouchers list
+  }, [dispatch, user?.id]);
 
   useEffect(() => {
-    // Tự động tính toán lại khi thay đổi lựa chọn sản phẩm hoặc thay đổi voucher
-    // Chỉ kích hoạt khi đã có danh sách sản phẩm
     if (user?.id && cartItems?.items?.length > 0) {
-      // Nếu đang có mã đã áp dụng, hãy dùng mã đó để re-validate
       const appliedCode = cartItems.calculations?.voucherDetails?.code || null;
       
       dispatch(fetchCartItems({ 
         userId: user.id, 
         voucherCode: appliedCode, 
-        selectedItems 
+        selectedItems: checkoutItems 
       }));
     }
-  }, [selectedItems, dispatch, user?.id]);
+  }, [checkoutItems, dispatch, user?.id]);
 
-  console.log(currentSelectedAddress, "cartItems");
+  const displayCheckoutItems = (cartItems?.items || []).filter(item => 
+    (checkoutItems || []).includes(`${item.productId}-${item.size || ''}-${item.color || ''}`)
+  );
 
-  const checkoutItems = cartItems && cartItems.items && cartItems.items.length > 0
-    ? cartItems.items.filter(item => (selectedItems || []).includes(`${item.productId}-${item.size || ''}-${item.color || ''}`))
-    : [];
+  const totalCartAmount = displayCheckoutItems.reduce(
+    (sum, currentItem) =>
+      sum +
+      (currentItem?.salePrice > 0
+        ? currentItem?.salePrice
+        : currentItem?.price) *
+      currentItem?.quantity,
+    0
+  );
 
-  const totalCartAmount =
-    checkoutItems.length > 0
-      ? checkoutItems.reduce(
-        (sum, currentItem) =>
-          sum +
-          (currentItem?.salePrice > 0
-            ? currentItem?.salePrice
-            : currentItem?.price) *
-          currentItem?.quantity,
-        0
-      )
-      : 0;
-
-  const allItemIds = cartItems && cartItems.items && cartItems.items.length > 0
-    ? cartItems.items.map(item => `${item.productId}-${item.size || ''}-${item.color || ''}`)
-    : [];
-
-  const isAllSelected = cartItems && cartItems.items && cartItems.items.length > 0 && selectedItems?.length === cartItems.items.length;
+  const allFilteredItemIds = displayCheckoutItems.map(item => `${item.productId}-${item.size || ''}-${item.color || ''}`);
+  const isAllSelected = checkoutItems.length > 0 && checkoutItems.length === displayCheckoutItems.length;
 
   const handleSelectAll = () => {
+    // Note: In checkout, select all usually means all items IN the checkout snapshot
     if (isAllSelected) {
-      dispatch(clearSelectedItems());
+       // dispatch(clearCheckoutItems()); // Unselecting all in checkout means empty checkout
     } else {
-      dispatch(selectAllItems(allItemIds));
+       // dispatch(selectAllCheckoutItems(allFilteredItemIds));
     }
   };
   
-  const isFullCheckout = cartItems && cartItems.items && checkoutItems.length === cartItems.items.length;
-  
   const appliedCalculations = cartItems && cartItems.calculations ? cartItems.calculations : null;
-  
   const discountAmount = appliedCalculations?.discountTotal || 0;
-  
-  // Calculate final amount based on the selected items minus the total calculated discount
   const finalAmount = Math.max(0, totalCartAmount - discountAmount);
   
   const applyVoucher = () => {
-    dispatch(fetchCartItems({ userId: user?.id, voucherCode, selectedItems }));
+    dispatch(fetchCartItems({ userId: user?.id, voucherCode, selectedItems: checkoutItems }));
   };
 
   function handleInitiateStripePayment() {
-    if (checkoutItems.length === 0) {
+    if (displayCheckoutItems.length === 0) {
       toast({
-        title: "Your checkout cart is empty. Please select items to proceed",
+        title: "Your checkout cart is empty.",
         variant: "destructive",
       });
-
       return;
     }
+    // ... (rest of function remains same)
     if (currentSelectedAddress === null) {
       toast({
         title: "Please select one address to proceed.",
@@ -122,7 +112,7 @@ function ShoppingCheckout() {
     const orderData = {
       userId: user?.id,
       cartId: cartItems?._id,
-      cartItems: checkoutItems.map((singleCartItem) => ({
+      cartItems: displayCheckoutItems.map((singleCartItem) => ({
         productId: singleCartItem?.productId,
         title: singleCartItem?.title,
         image: singleCartItem?.image,
@@ -179,23 +169,9 @@ function ShoppingCheckout() {
           setCurrentSelectedAddress={setCurrentSelectedAddress}
         />
         <div className="flex flex-col gap-4">
-          {cartItems && cartItems.items && cartItems.items.length > 0 && (
-            <div className="mb-2 flex items-center gap-2 px-1">
-              <Checkbox
-                id="selectAllCheckout"
-                checked={isAllSelected}
-                onCheckedChange={handleSelectAll}
-              />
-              <Label
-                htmlFor="selectAllCheckout"
-                className="cursor-pointer text-[10px] uppercase tracking-[0.16em] text-gray-600 font-medium"
-              >
-                Chọn tất cả ({cartItems.items.length} sản phẩm)
-              </Label>
-            </div>
-          )}
-          {cartItems && cartItems.items && cartItems.items.length > 0
-            ? cartItems.items.map((item, idx) => {
+          {/* Removed Select All header from checkout as it's a dedicated session view */}
+          {displayCheckoutItems && displayCheckoutItems.length > 0
+            ? displayCheckoutItems.map((item, idx) => {
                 let itemDiscount = 0;
                 if (appliedCalculations?.appliedPromotions?.length > 0) {
                   appliedCalculations.appliedPromotions.forEach(promo => {
@@ -212,7 +188,7 @@ function ShoppingCheckout() {
                   });
                 }
 
-                return <UserCartItemsContent key={idx} cartItem={item} discount={itemDiscount} />;
+                return <UserCartItemsContent key={idx} cartItem={item} discount={itemDiscount} isCheckoutPage={true} />;
               })
             : null}
           <div className="mt-6 space-y-4">

@@ -13,6 +13,7 @@ function UserCartItemsContent({
   enableProductNavigation = false,
   onProductNavigate,
   discount = 0,
+  isCheckoutPage = false,
 }) {
   const { user } = useSelector((state) => state.auth);
   const { cartItems, selectedItems = [] } = useSelector((state) => state.shopCart);
@@ -187,11 +188,13 @@ function UserCartItemsContent({
 
   return (
     <div className="flex items-start gap-4 border-b border-gray-100 pb-6">
-      <Checkbox
-        checked={isSelected}
-        onCheckedChange={handleToggleSelect}
-        className="mt-1 flex-shrink-0"
-      />
+      {!isCheckoutPage && (
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={handleToggleSelect}
+          className="mt-1 flex-shrink-0"
+        />
+      )}
       <img
         src={cartItem?.image}
         alt={cartItem?.title}

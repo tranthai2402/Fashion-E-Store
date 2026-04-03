@@ -5,6 +5,7 @@ const initialState = {
   cartItems: [],
   isLoading: false,
   selectedItems: [],
+  checkoutItems: [],
 };
 
 export const addToCart = createAsyncThunk(
@@ -111,6 +112,26 @@ const shoppingCartSlice = createSlice({
     clearSelectedItems: (state) => {
       state.selectedItems = [];
     },
+    // New reducers for Checkout snapshot
+    setCheckoutItems: (state, action) => {
+      state.checkoutItems = action.payload;
+    },
+    toggleCheckoutSelectItem: (state, action) => {
+      const { id } = action.payload;
+      if (!state.checkoutItems) state.checkoutItems = [];
+      const index = state.checkoutItems.indexOf(id);
+      if (index === -1) {
+        state.checkoutItems.push(id);
+      } else {
+        state.checkoutItems.splice(index, 1);
+      }
+    },
+    selectAllCheckoutItems: (state, action) => {
+      state.checkoutItems = action.payload;
+    },
+    clearCheckoutItems: (state) => {
+      state.checkoutItems = [];
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -161,6 +182,9 @@ const shoppingCartSlice = createSlice({
   },
 });
 
-export const { clearCart, toggleSelectItem, selectAllItems, clearSelectedItems } = shoppingCartSlice.actions;
+export const { 
+  clearCart, toggleSelectItem, selectAllItems, clearSelectedItems, 
+  setCheckoutItems, toggleCheckoutSelectItem, selectAllCheckoutItems, clearCheckoutItems 
+} = shoppingCartSlice.actions;
 
 export default shoppingCartSlice.reducer;

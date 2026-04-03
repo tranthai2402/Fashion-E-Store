@@ -25,12 +25,17 @@ const calculateCartDiscounts = async (cartItems, user, voucherCode = null) => {
 
   const now = new Date();
 
-  // 1. Lấy tất cả các Automatic Promotions đang active
+  // 1. Lấy khách các Automatic Promotions đang active
+  // Chỉ áp dụng những mã có điều kiện giá trị đơn hàng hoặc số lượng (vì những mã không điều kiện đã được tính vào salePrice rồi)
   const activePromotions = await Promotion.find({
     status: "active",
     type: { $in: ["automatic", "flash_sale", "seasonal"] },
     startDate: { $lte: now },
     endDate: { $gte: now },
+    $or: [
+      { "conditions.minOrderValue": { $gt: 0 } },
+      { "conditions.minQuantity": { $gt: 0 } },
+    ]
   }).sort({ priority: -1 }); // Ưu tiên cao xuống thấp
 
   // 2. Nếu có voucher, kiểm tra và lấy thêm Promotion của voucher đó
@@ -244,11 +249,14 @@ const enrichProductsWithAutomaticPromotions = async (products) => {
   const now = new Date();
   
   // Lấy các khuyến mãi tự động đang active
+  // CHỈ lấy các mã KHÔNG có điều kiện ràng buộc về tổng đơn (unconditional) để hiển thị giá sale trực tiếp
   const activePromos = await Promotion.find({
     status: "active",
     type: { $in: ["automatic", "flash_sale", "seasonal"] },
     startDate: { $lte: now },
     endDate: { $gte: now },
+    "conditions.minOrderValue": { $lte: 0 },
+    "conditions.minQuantity": { $lte: 0 }
   }).sort({ priority: -1 });
 
   if (!activePromos.length) return products;

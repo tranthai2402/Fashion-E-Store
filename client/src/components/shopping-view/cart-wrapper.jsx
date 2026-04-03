@@ -3,7 +3,7 @@ import { Button } from "../ui/button";
 import { SheetContent, SheetHeader, SheetTitle } from "../ui/sheet";
 import UserCartItemsContent from "./cart-items-content";
 import { useDispatch, useSelector } from "react-redux";
-import { selectAllItems, clearSelectedItems } from "@/store/shop/cart-slice";
+import { selectAllItems, clearSelectedItems, setCheckoutItems } from "@/store/shop/cart-slice";
 import { Checkbox } from "../ui/checkbox";
 import { Label } from "../ui/label";
 import { useToast } from "../ui/use-toast";
@@ -115,6 +115,8 @@ function UserCartWrapper({ cartItems, setOpenCartSheet }) {
                 });
                 return;
               }
+              dispatch(setCheckoutItems(selectedItems));
+              dispatch(clearSelectedItems());
               navigate("/shop/checkout");
               setOpenCartSheet(false);
             }}
