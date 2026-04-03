@@ -344,13 +344,13 @@ function AdminProducts() {
         </Button>
       </div>
       <div className="rounded-lg border bg-background min-h-[520px] flex flex-col">
-        <div className="hidden md:grid grid-cols-[80px_2fr_1fr_1fr_1fr_1fr_140px] gap-4 px-4 py-2 text-xs font-semibold uppercase text-muted-foreground border-b">
+        <div className="hidden md:grid grid-cols-[80px_2fr_1fr_1fr_1fr_1fr_140px] gap-4 px-4 py-2 text-xs font-semibold uppercase text-muted-foreground border-b items-center">
           <div>Image</div>
-          <div>Name</div>
+          <div>Product Info</div>
           <div>Stock</div>
           <div>Price</div>
-          <div>Sale Price</div>
-          <div>Stock</div>
+          <div>Sale</div>
+          <div>Status</div>
           <div className="text-right">Actions</div>
         </div>
         <div className="divide-y flex-1">

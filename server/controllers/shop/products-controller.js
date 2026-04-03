@@ -1,4 +1,5 @@
 const Product = require("../../models/Product");
+const { enrichProductsWithAutomaticPromotions } = require("../../helpers/promotionCalculator");
 
 const getFilteredProducts = async (req, res) => {
   try {
@@ -23,32 +24,29 @@ const getFilteredProducts = async (req, res) => {
     switch (sortBy) {
       case "price-lowtohigh":
         sort.price = 1;
-
         break;
       case "price-hightolow":
         sort.price = -1;
-
         break;
       case "title-atoz":
         sort.title = 1;
-
         break;
-
       case "title-ztoa":
         sort.title = -1;
-
         break;
-
       default:
         sort.price = 1;
         break;
     }
-
+    
     const products = await Product.find(filters).sort(sort);
+    
+    // Enrich with active automatic promotions
+    const enrichedProducts = await enrichProductsWithAutomaticPromotions(products);
 
     res.status(200).json({
       success: true,
-      data: products,
+      data: enrichedProducts,
     });
   } catch (error) {
     console.log(error);
@@ -70,9 +68,11 @@ const getProductDetails = async (req, res) => {
         message: "Product not found!",
       });
 
+    const enrichedProduct = await enrichProductsWithAutomaticPromotions([product]);
+
     res.status(200).json({
       success: true,
-      data: product,
+      data: enrichedProduct[0],
     });
   } catch (error) {
     console.log(error);
@@ -95,10 +95,13 @@ const getBestSellingProducts = async (req, res) => {
     const products = await Product.find(filters)
       .sort({ totalSold: -1 })
       .limit(4);
+    
+    // Enrich with active automatic promotions
+    const enrichedProducts = await enrichProductsWithAutomaticPromotions(products);
 
     res.status(200).json({
       success: true,
-      data: products,
+      data: enrichedProducts,
     });
   } catch (error) {
     console.log(error);

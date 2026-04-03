@@ -29,6 +29,17 @@ export const updateUserRole = createAsyncThunk(
   }
 );
 
+export const deleteUser = createAsyncThunk(
+  "/admin/deleteUser",
+  async (userId) => {
+    const response = await axios.delete(
+      `http://localhost:5000/api/admin/users/delete/${userId}`
+    );
+
+    return response.data;
+  }
+);
+
 const adminUserSlice = createSlice({
   name: "adminUser",
   initialState,
@@ -40,11 +51,20 @@ const adminUserSlice = createSlice({
       })
       .addCase(fetchAllUsers.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.userList = action.payload.data;
+        state.userList = Array.isArray(action.payload?.data) ? action.payload.data : [];
       })
       .addCase(fetchAllUsers.rejected, (state) => {
         state.isLoading = false;
         state.userList = [];
+      })
+      .addCase(deleteUser.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(deleteUser.fulfilled, (state) => {
+        state.isLoading = false;
+      })
+      .addCase(deleteUser.rejected, (state) => {
+        state.isLoading = false;
       });
   },
 });

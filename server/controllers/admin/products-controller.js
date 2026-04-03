@@ -171,12 +171,16 @@ const addProduct = async (req, res) => {
 
 //fetch all products
 
+const { enrichProductsWithAutomaticPromotions } = require("../../helpers/promotionCalculator");
+
 const fetchAllProducts = async (req, res) => {
   try {
     const listOfProducts = await Product.find({});
+    const enrichedProducts = await enrichProductsWithAutomaticPromotions(listOfProducts);
+    
     res.status(200).json({
       success: true,
-      data: listOfProducts,
+      data: enrichedProducts,
     });
   } catch (e) {
     console.log(e);

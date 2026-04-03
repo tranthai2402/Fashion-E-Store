@@ -43,10 +43,10 @@ const adminAnalyticsSlice = createSlice({
       })
       .addCase(getRevenueAnalytics.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.totalRevenue = action.payload.data.totalRevenue;
-        state.totalUsers = action.payload.data.totalUsers;
-        state.totalOrdersCount = action.payload.data.totalOrdersCount;
-        state.chartData = action.payload.data.chartData;
+        state.totalRevenue = action.payload?.success ? action.payload?.data?.totalRevenue ?? 0 : 0;
+        state.totalUsers = action.payload?.success ? action.payload?.data?.totalUsers ?? 0 : 0;
+        state.totalOrdersCount = action.payload?.success ? action.payload?.data?.totalOrdersCount ?? 0 : 0;
+        state.chartData = action.payload?.success ? action.payload?.data?.chartData ?? [] : [];
       })
       .addCase(getRevenueAnalytics.rejected, (state) => {
         state.isLoading = false;
@@ -60,7 +60,7 @@ const adminAnalyticsSlice = createSlice({
       })
       .addCase(getComparisonAnalytics.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.comparisonData = action.payload.data;
+        state.comparisonData = action.payload?.success ? action.payload?.data ?? null : null;
       })
       .addCase(getComparisonAnalytics.rejected, (state) => {
         state.isLoading = false;

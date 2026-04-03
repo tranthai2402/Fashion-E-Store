@@ -23,6 +23,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Search, Calendar as CalendarIcon, X } from "lucide-react";
 
 const initialFormData = {
   name: "",
@@ -51,6 +52,8 @@ function AdminPromotions() {
   const [formData, setFormData] = useState(initialFormData);
   const [currentEditedId, setCurrentEditedId] = useState(null);
   const [productSearch, setProductSearch] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
 
   useEffect(() => {
     dispatch(fetchAllPromotions());
@@ -91,7 +94,7 @@ function AdminPromotions() {
       usagePerUser: promo.usagePerUser || 1,
       isPublic: promo.isPublic !== undefined ? promo.isPublic : true,
       applicableProducts: promo.conditions?.applicableProducts || [],
-      code: "" 
+      code: promo.code || "" 
     });
     setOpenDialog(true);
   };
@@ -116,7 +119,8 @@ function AdminPromotions() {
       },
       usageLimit: formData.usageLimit ? Number(formData.usageLimit) : null,
       usagePerUser: Number(formData.usagePerUser) || 1,
-      isPublic: formData.isPublic
+      isPublic: formData.isPublic,
+      code: formData.code // Include for update
     };
 
     if (currentEditedId) {
@@ -152,15 +156,54 @@ function AdminPromotions() {
     }
   };
 
+  const filteredPromotions = promotions && promotions.length > 0 
+    ? promotions.filter(promo => {
+        const matchesName = promo.name.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesDate = !dateFilter || (
+          (promo.startDate && new Date(promo.startDate).toISOString().split('T')[0] === dateFilter) ||
+          (promo.endDate && new Date(promo.endDate).toISOString().split('T')[0] === dateFilter)
+        );
+        return matchesName && matchesDate;
+      })
+    : [];
+
   if (isLoading) return <div>Đang tải...</div>;
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <h1 className="text-2xl font-bold">Sales & Promotions</h1>
-        <Button onClick={() => { setCurrentEditedId(null); setFormData(initialFormData); setOpenDialog(true); }}>
-          Thêm Campaign Mới
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Tìm theo tên..." 
+              className="pl-8 w-[200px]" 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className="relative">
+            <CalendarIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input 
+              type="date"
+              className="pl-8 w-[170px]" 
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+            />
+            {dateFilter && (
+              <button 
+                onClick={() => setDateFilter("")}
+                className="absolute right-2 top-2.5 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <Button onClick={() => { setCurrentEditedId(null); setFormData(initialFormData); setOpenDialog(true); }}>
+            Thêm Campaign Mới
+          </Button>
+        </div>
       </div>
 
       <div className="bg-white rounded-md shadow overflow-x-auto">
@@ -178,8 +221,8 @@ function AdminPromotions() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {promotions && promotions.length > 0 ? (
-              promotions.map((promo) => (
+            {filteredPromotions && filteredPromotions.length > 0 ? (
+              filteredPromotions.map((promo) => (
                 <TableRow key={promo._id}>
                   <TableCell className="font-medium">{promo.name}</TableCell>
                   <TableCell>
@@ -194,7 +237,7 @@ function AdminPromotions() {
                   <TableCell>{getFormattedDate(promo.startDate)}</TableCell>
                   <TableCell>{getFormattedDate(promo.endDate)}</TableCell>
                   <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs \${promo.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                    <span className={`px-2 py-1 rounded-full text-xs ${promo.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                       {promo.status}
                     </span>
                   </TableCell>
@@ -208,7 +251,7 @@ function AdminPromotions() {
             ) : (
               <TableRow>
                 <TableCell colSpan={8} className="text-center h-24 text-gray-500">
-                  Chưa có chương trình nào.
+                  {searchTerm || dateFilter ? "Không tìm thấy chương trình phù hợp." : "Chưa có chương trình nào."}
                 </TableCell>
               </TableRow>
             )}
@@ -256,10 +299,11 @@ function AdminPromotions() {
               </div>
             </div>
 
-            {formData.type === "code_based" && !currentEditedId && (
+            {formData.type === "code_based" && (
               <div className="space-y-2 border p-3 rounded-md bg-gray-50">
                 <Label>Mã Voucher (Nhập Code người dùng sẽ dùng)</Label>
                 <Input required value={formData.code} onChange={(e) => setFormData({...formData, code: e.target.value.toUpperCase()})} placeholder="VD: TET2024" />
+                {currentEditedId && <p className="text-[10px] text-orange-600">Lưu ý: Thay đổi mã có thể ảnh hưởng đến người dùng đã lưu mã.</p>}
               </div>
             )}
 

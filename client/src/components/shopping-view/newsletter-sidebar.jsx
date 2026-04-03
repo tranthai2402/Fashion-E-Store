@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "../ui/sheet";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -10,7 +11,16 @@ function NewsletterSidebar() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [open, setOpen] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const handleContinueShopping = () => {
+    setIsSuccess(false);
+    setEmail("");
+    setOpen(false);
+    navigate("/shop/listing");
+  };
 
   const handleSubscribe = async (e) => {
     e.preventDefault();
@@ -48,11 +58,26 @@ function NewsletterSidebar() {
   };
 
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <button className="fixed right-0 top-1/2 -translate-y-1/2 bg-black text-white p-3 rounded-l-md shadow-2xl flex flex-col items-center gap-2 hover:bg-gray-800 transition-all z-40">
-          <Gift className="w-5 h-5 animate-bounce" />
-          <span className="[writing-mode:vertical-lr] text-[10px] font-bold uppercase tracking-widest">Nhận Ưu Đãi</span>
+        <button className="fixed bottom-8 right-8 z-50 flex items-center justify-center group">
+          {/* Pulsing ring background */}
+          <div className="absolute inset-0 bg-black/20 rounded-full animate-ping scale-110 opacity-75 group-hover:bg-black/30 transition-all"></div>
+          
+          {/* Floating label on hover */}
+          <div className="absolute right-full mr-4 bg-white text-black px-3 py-1.5 rounded-full text-[10px] font-bold shadow-lg opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all pointer-events-none whitespace-nowrap border border-gray-100">
+            Nhận ưu đãi 10% ngay! ✨
+          </div>
+
+          <div className="relative bg-black text-white w-16 h-16 rounded-full shadow-[0_10px_40px_rgba(0,0,0,0.3)] flex flex-col items-center justify-center hover:scale-110 active:scale-95 transition-all border border-white/20 overflow-visible">
+            {/* Badge */}
+            <div className="absolute -top-2 -right-2 bg-red-600 text-[10px] font-bold text-white px-2 py-0.5 rounded-full shadow-lg transform rotate-12 group-hover:rotate-0 transition-all">
+              -10%
+            </div>
+            
+            <Gift className="w-6 h-6 mb-0.5 group-hover:scale-110 transition-transform duration-300" />
+            <span className="text-[8px] font-black uppercase tracking-[0.1em] opacity-90 group-hover:opacity-100">Ưu Đãi</span>
+          </div>
         </button>
       </SheetTrigger>
       <SheetContent side="right" className="w-full sm:max-w-md bg-white p-0 overflow-hidden border-l border-gray-100">
@@ -112,7 +137,7 @@ function NewsletterSidebar() {
                   Mã giảm giá đã được gửi đến <span className="font-bold text-black">{email}</span>. Vui lòng kiểm tra email của bạn để lấy mã và bắt đầu mua sắm.
                 </p>
                 <Button 
-                   onClick={() => setIsSuccess(false)}
+                   onClick={handleContinueShopping}
                    className="w-full h-12 bg-black text-white hover:bg-gray-800 font-semibold uppercase tracking-[0.2em] text-[11px] rounded-none"
                 >
                   Tiếp tục mua hàng

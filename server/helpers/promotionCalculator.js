@@ -240,6 +240,75 @@ const calculateCartDiscounts = async (cartItems, user, voucherCode = null) => {
   };
 };
 
+const enrichProductsWithAutomaticPromotions = async (products) => {
+  const now = new Date();
+  
+  // Lấy các khuyến mãi tự động đang active
+  const activePromos = await Promotion.find({
+    status: "active",
+    type: { $in: ["automatic", "flash_sale", "seasonal"] },
+    startDate: { $lte: now },
+    endDate: { $gte: now },
+  }).sort({ priority: -1 });
+
+  if (!activePromos.length) return products;
+
+  return products.map(product => {
+    let bestSalePrice = product.salePrice && product.salePrice > 0 ? product.salePrice : 0;
+    const basePrice = product.price;
+
+    for (const promo of activePromos) {
+      // Check conditions
+      const productCond = promo.conditions?.applicableProducts || [];
+      const categoryCond = promo.conditions?.applicableCategories || [];
+      const isRestricted = productCond.length > 0 || categoryCond.length > 0;
+
+      let isMatch = true;
+      if (isRestricted) {
+        const prodId = product._id.toString();
+        const category = product.category ? product.category.toLowerCase() : "";
+        const isProductMatch = productCond.some(pId => pId.toString() === prodId);
+        const isCategoryMatch = categoryCond.some(cat => cat && cat.toLowerCase() === category);
+        isMatch = isProductMatch || isCategoryMatch;
+      }
+
+      if (isMatch) {
+        const { action } = promo;
+        let calculatedSalePrice = 0;
+
+        if (action.discountType === "percentage") {
+          calculatedSalePrice = basePrice * (1 - (action.discountValue / 100));
+        } else if (action.discountType === "fixed_amount") {
+          calculatedSalePrice = Math.max(0, basePrice - action.discountValue);
+        }
+
+        if (calculatedSalePrice > 0) {
+          // Nếu chưa có salePrice gốc hoặc giá khuyến mãi tự động mới thấp hơn (giảm nhiều hơn), ta dùng nó.
+          if (bestSalePrice === 0 || calculatedSalePrice < bestSalePrice) {
+            bestSalePrice = calculatedSalePrice;
+          }
+          
+          // Sau khi tìm thấy 1 promo áp dụng được (theo độ ưu tiên cao nhất đã sort),
+          // Nếu logic hệ thống chỉ cho áp dụng 1 promo cao nhất, ta break.
+          // Ở đây ta break vì activePromos đã sort theo priority.
+          break;
+        }
+      }
+    }
+
+    return {
+      ...product.toObject ? product.toObject() : product,
+      originalSalePrice: product.salePrice,
+      salePrice: bestSalePrice > 0 ? Number(bestSalePrice.toFixed(2)) : projectSalePrice(product)
+    };
+  });
+};
+
+function projectSalePrice(product) {
+  return product.salePrice || 0;
+}
+
 module.exports = {
-  calculateCartDiscounts
+  calculateCartDiscounts,
+  enrichProductsWithAutomaticPromotions
 };
