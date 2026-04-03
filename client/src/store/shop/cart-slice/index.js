@@ -6,6 +6,7 @@ const initialState = {
   isLoading: false,
   selectedItems: [],
   checkoutItems: [],
+  payingItems: [],
 };
 
 export const addToCart = createAsyncThunk(
@@ -115,22 +116,34 @@ const shoppingCartSlice = createSlice({
     // New reducers for Checkout snapshot
     setCheckoutItems: (state, action) => {
       state.checkoutItems = action.payload;
+      state.payingItems = action.payload; // Initially all items chosen for checkout are checked for payment
     },
     toggleCheckoutSelectItem: (state, action) => {
       const { id } = action.payload;
-      if (!state.checkoutItems) state.checkoutItems = [];
-      const index = state.checkoutItems.indexOf(id);
-      if (index === -1) {
-        state.checkoutItems.push(id);
-      } else {
+      const index = (state.checkoutItems || []).indexOf(id);
+      if (index > -1) {
         state.checkoutItems.splice(index, 1);
+        // Also remove from paying items if present
+        const pIndex = (state.payingItems || []).indexOf(id);
+        if (pIndex > -1) state.payingItems.splice(pIndex, 1);
       }
     },
-    selectAllCheckoutItems: (state, action) => {
-      state.checkoutItems = action.payload;
+    togglePayingItem: (state, action) => {
+      const { id } = action.payload;
+      if (!state.payingItems) state.payingItems = [];
+      const index = state.payingItems.indexOf(id);
+      if (index === -1) {
+        state.payingItems.push(id);
+      } else {
+        state.payingItems.splice(index, 1);
+      }
+    },
+    selectAllPayingItems: (state, action) => {
+      state.payingItems = action.payload;
     },
     clearCheckoutItems: (state) => {
       state.checkoutItems = [];
+      state.payingItems = [];
     },
   },
   extraReducers: (builder) => {
@@ -184,7 +197,8 @@ const shoppingCartSlice = createSlice({
 
 export const { 
   clearCart, toggleSelectItem, selectAllItems, clearSelectedItems, 
-  setCheckoutItems, toggleCheckoutSelectItem, selectAllCheckoutItems, clearCheckoutItems 
+  setCheckoutItems, toggleCheckoutSelectItem, clearCheckoutItems,
+  togglePayingItem, selectAllPayingItems 
 } = shoppingCartSlice.actions;
 
 export default shoppingCartSlice.reducer;

@@ -1,10 +1,9 @@
 import { Minus, Plus, Trash } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
-import { deleteCartItem, updateCartQuantity } from "@/store/shop/cart-slice";
+import { deleteCartItem, updateCartQuantity, toggleSelectItem, toggleCheckoutSelectItem, togglePayingItem } from "@/store/shop/cart-slice";
 import { useToast } from "../ui/use-toast";
 import { Checkbox } from "../ui/checkbox";
 import { Input } from "../ui/input";
-import { toggleSelectItem } from "@/store/shop/cart-slice";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 
@@ -16,7 +15,7 @@ function UserCartItemsContent({
   isCheckoutPage = false,
 }) {
   const { user } = useSelector((state) => state.auth);
-  const { cartItems, selectedItems = [] } = useSelector((state) => state.shopCart);
+  const { cartItems, selectedItems = [], payingItems = [] } = useSelector((state) => state.shopCart);
   const { productList } = useSelector((state) => state.shopProducts);
   const dispatch = useDispatch();
   const { toast } = useToast();
@@ -28,34 +27,41 @@ function UserCartItemsContent({
     setInputValue(cartItem?.quantity);
   }, [cartItem?.quantity]);
 
-  const itemId = `${cartItem.productId}-${cartItem.size || ''}-${cartItem.color || ''}`;
-  const isSelected = (selectedItems || []).includes(itemId);
+  const pId = cartItem.productId && typeof cartItem.productId === 'object' ? cartItem.productId._id : cartItem.productId;
+  const itemId = `${pId}-${cartItem.size || ''}-${cartItem.color || ''}`;
+  
+  const isSelected = isCheckoutPage 
+    ? (payingItems || []).includes(itemId)
+    : (selectedItems || []).includes(itemId);
 
   const handleToggleSelect = () => {
-    dispatch(toggleSelectItem({ id: itemId }));
+    if (isCheckoutPage) {
+      dispatch(togglePayingItem({ id: itemId }));
+    } else {
+      dispatch(toggleSelectItem({ id: itemId }));
+    }
   };
 
   function handleNavigateToProduct() {
-    if (!enableProductNavigation || !cartItem?.productId) return;
+    if (!enableProductNavigation || !pId) return;
     if (typeof onProductNavigate === "function") {
       onProductNavigate(cartItem);
     }
-    navigate(`/shop/product/${cartItem.productId}`);
+    navigate(`/shop/product/${pId}`);
   }
 
   function handleUpdateQuantity(getCartItem, typeOfAction) {
     if (typeOfAction == "plus") {
       let getCartItems = cartItems.items || [];
-
         const indexOfCurrentCartItem = getCartItems.findIndex(
           (item) =>
-            item.productId === getCartItem?.productId &&
+            (item.productId?._id || item.productId) === pId &&
             item.size === getCartItem?.size &&
             item.color === getCartItem?.color
         );
 
         const getCurrentProductIndex = productList.findIndex(
-          (product) => product._id === getCartItem?.productId
+          (product) => product._id === pId
         );
 
         if (getCurrentProductIndex > -1) {
@@ -87,7 +93,7 @@ function UserCartItemsContent({
     dispatch(
       updateCartQuantity({
         userId: user?.id,
-        productId: getCartItem?.productId,
+        productId: pId,
         size: getCartItem?.size,
         color: getCartItem?.color,
         quantity:
@@ -98,7 +104,7 @@ function UserCartItemsContent({
     ).then((data) => {
       if (data?.payload?.success) {
         toast({
-          title: "Cart item is updated successfully",
+          title: "Cart item updated successfully",
         });
       } else {
         toast({
@@ -120,7 +126,7 @@ function UserCartItemsContent({
     }
 
     const getCurrentProductIndex = productList.findIndex(
-      (product) => product._id === getCartItem?.productId
+      (product) => product._id === pId
     );
 
     if (getCurrentProductIndex > -1) {
@@ -151,7 +157,7 @@ function UserCartItemsContent({
     dispatch(
       updateCartQuantity({
         userId: user?.id,
-        productId: getCartItem?.productId,
+        productId: pId,
         size: getCartItem?.size,
         color: getCartItem?.color,
         quantity: quantity,
@@ -170,10 +176,15 @@ function UserCartItemsContent({
   }
 
   function handleCartItemDelete(getCartItem) {
+    if (isCheckoutPage) {
+      dispatch(toggleCheckoutSelectItem({ id: itemId }));
+      return;
+    }
+
     dispatch(
       deleteCartItem({
         userId: user?.id,
-        productId: getCartItem?.productId,
+        productId: pId,
         size: getCartItem?.size,
         color: getCartItem?.color,
       })
@@ -187,18 +198,16 @@ function UserCartItemsContent({
   }
 
   return (
-    <div className="flex items-start gap-4 border-b border-gray-100 pb-6">
-      {!isCheckoutPage && (
-        <Checkbox
-          checked={isSelected}
-          onCheckedChange={handleToggleSelect}
-          className="mt-1 flex-shrink-0"
-        />
-      )}
+    <div className="flex items-start gap-4 border-b border-gray-100 pb-6 w-full">
+      <Checkbox
+        checked={isSelected}
+        onCheckedChange={handleToggleSelect}
+        className="mt-1 flex-shrink-0"
+      />
       <img
         src={cartItem?.image}
         alt={cartItem?.title}
-        className={`h-28 w-24 flex-shrink-0 object-cover bg-[#f5f5f0] ${
+        className={`h-28 w-24 flex-shrink-0 object-cover bg-[#f5f5f0] rounded-sm ${
           enableProductNavigation ? "cursor-pointer" : ""
         }`}
         onClick={handleNavigateToProduct}
@@ -235,7 +244,7 @@ function UserCartItemsContent({
         <div className="mt-4 flex items-center gap-4">
           <button
             disabled={cartItem?.quantity === 1}
-            className="text-sm text-gray-600 hover:text-black transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="text-sm text-gray-600 hover:text-black transition-colors disabled:opacity-30 disabled:cursor-not-allowed p-1"
             onClick={() => {
               handleUpdateQuantity(cartItem, "minus");
             }}
@@ -252,10 +261,10 @@ function UserCartItemsContent({
                 handleManualUpdateQuantity(cartItem, e.target.value);
               }
             }}
-            className="w-12 h-7 p-1 text-center text-[11px] font-medium tracking-[0.1em] text-gray-800 border-gray-200 focus:ring-0 focus:border-black rounded-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            className="w-12 h-7 p-1 text-center text-[11px] font-medium tracking-[0.1em] text-gray-800 border-gray-200 focus:ring-0 focus:border-black rounded-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none bg-white"
           />
           <button
-            className="text-sm text-gray-600 hover:text-black transition-colors"
+            className="text-sm text-gray-600 hover:text-black transition-colors p-1"
             onClick={() => {
               handleUpdateQuantity(cartItem, "plus");
             }}
@@ -288,7 +297,7 @@ function UserCartItemsContent({
         </div>
         <button
           onClick={() => handleCartItemDelete(cartItem)}
-          className="text-gray-400 hover:text-black transition-colors"
+          className="text-gray-400 hover:text-black transition-colors p-1"
         >
           <Trash size={16} strokeWidth={1.5} />
         </button>
