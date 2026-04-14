@@ -28,6 +28,10 @@ const ProductSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    isBestSeller: {
+      type: Boolean,
+      default: false,
+    },
     variants: [
       {
         size: String,

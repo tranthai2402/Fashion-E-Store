@@ -68,6 +68,7 @@ const addProduct = async (req, res) => {
       colorImageMap,
       averageReview,
       variants,
+      isBestSeller,
     } = req.body;
 
     if (!title || !category || price === undefined || price === null) {
@@ -153,6 +154,7 @@ const addProduct = async (req, res) => {
       colorImageMap: processedColorImageMap,
       averageReview,
       variants: generatedVariants,
+      isBestSeller: isBestSeller || false,
     });
 
     await newlyCreatedProduct.save();
@@ -210,6 +212,7 @@ const editProduct = async (req, res) => {
       colorImageMap,
       averageReview,
       variants,
+      isBestSeller,
     } = req.body;
 
     let findProduct = await Product.findById(id);
@@ -293,6 +296,7 @@ const editProduct = async (req, res) => {
     );
     findProduct.averageReview = averageReview || findProduct.averageReview;
     findProduct.variants = generatedVariants;
+    findProduct.isBestSeller = isBestSeller !== undefined ? isBestSeller : findProduct.isBestSeller;
 
     await findProduct.save();
     res.status(200).json({
@@ -333,10 +337,28 @@ const deleteProduct = async (req, res) => {
   }
 };
 
+const clearAllBestsellers = async (req, res) => {
+  try {
+    await Product.updateMany({}, { isBestSeller: false });
+
+    res.status(200).json({
+      success: true,
+      message: "Đã xóa tất cả sản phẩm khỏi danh sách Bestseller",
+    });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({
+      success: false,
+      message: "Error occured",
+    });
+  }
+};
+
 module.exports = {
   handleImageUpload,
   addProduct,
   fetchAllProducts,
   editProduct,
   deleteProduct,
+  clearAllBestsellers,
 };

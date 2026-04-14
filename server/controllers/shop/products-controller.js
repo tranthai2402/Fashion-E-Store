@@ -92,9 +92,15 @@ const getBestSellingProducts = async (req, res) => {
       filters.category = category;
     }
 
-    const products = await Product.find(filters)
-      .sort({ totalSold: -1 })
+    let products = await Product.find({ ...filters, isBestSeller: true })
+      .sort({ totalStock: -1 })
       .limit(4);
+
+    if (products.length === 0) {
+      products = await Product.find(filters)
+        .sort({ totalSold: -1 })
+        .limit(4);
+    }
     
     // Enrich with active automatic promotions
     const enrichedProducts = await enrichProductsWithAutomaticPromotions(products);

@@ -62,6 +62,17 @@ export const deleteProduct = createAsyncThunk(
   }
 );
 
+export const clearAllBestsellers = createAsyncThunk(
+  "/products/clearAllBestsellers",
+  async () => {
+    const result = await axios.put(
+      "http://localhost:5000/api/admin/products/clear-bestsellers"
+    );
+
+    return result?.data;
+  }
+);
+
 const AdminProductsSlice = createSlice({
   name: "adminProducts",
   initialState,

@@ -38,6 +38,7 @@ const initialFormData = {
   colorImageMap: [],
   averageReview: 0,
   variants: [],
+  isBestSeller: false,
 };
 
 function getPaginationItems(currentPage, totalPages) {

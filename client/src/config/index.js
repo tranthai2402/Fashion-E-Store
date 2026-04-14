@@ -106,6 +106,12 @@ export const addProductFormElements = [
     componentType: "tag-input",
     placeholder: "Type color and press Enter (e.g. Red, Black)",
   },
+  {
+    label: "Bestseller",
+    name: "isBestSeller",
+    componentType: "checkbox",
+    placeholder: "Đánh dấu là sản phẩm Bestseller",
+  },
 ];
 
 export const shoppingViewHeaderMenuItems = [
