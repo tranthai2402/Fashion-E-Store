@@ -1,11 +1,3 @@
-import ProductImageUpload from "@/components/admin-view/image-upload";
-import { Button } from "@/components/ui/button";
-import {
-  addFeatureImage,
-  deleteFeatureImage,
-  getFeatureImages,
-  updateFeatureImageStatus,
-} from "@/store/common-slice";
 import { getRevenueAnalytics, getComparisonAnalytics } from "@/store/admin/analytics-slice";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -33,51 +25,17 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 
 function AdminDashboard() {
-  const [imageFile, setImageFile] = useState(null);
-  const [uploadedImageUrl, setUploadedImageUrl] = useState("");
-  const [imageLoadingState, setImageLoadingState] = useState(false);
   const [filter, setFilter] = useState("day");
   const [isCompareMode, setIsCompareMode] = useState(false);
   const [period1, setPeriod1] = useState(new Date().toISOString().split("T")[0]);
   const [period2, setPeriod2] = useState(new Date(Date.now() - 86400000).toISOString().split("T")[0]);
 
   const dispatch = useDispatch();
-  const { featureImageList } = useSelector((state) => state.commonFeature);
   const { totalRevenue, totalUsers, totalOrdersCount, chartData, comparisonData } = useSelector(
     (state) => state.adminAnalytics
   );
 
-  function handleUploadFeatureImage() {
-    dispatch(addFeatureImage(uploadedImageUrl)).then((data) => {
-      if (data?.payload?.success) {
-        dispatch(getFeatureImages());
-        setImageFile(null);
-        setUploadedImageUrl("");
-      }
-    });
-  }
-
-  function handleDeleteFeatureImage(id) {
-    dispatch(deleteFeatureImage(id)).then((data) => {
-      if (data?.payload?.success) {
-        dispatch(getFeatureImages());
-      }
-    });
-  }
-
-  function handleToggleFeatureImageStatus(id, currentStatus) {
-    const nextStatus = currentStatus === false ? true : false;
-    dispatch(
-      updateFeatureImageStatus({ id, enabled: nextStatus })
-    ).then((data) => {
-      if (data?.payload?.success) {
-        dispatch(getFeatureImages());
-      }
-    });
-  }
-
   useEffect(() => {
-    dispatch(getFeatureImages());
     if (isCompareMode) {
       dispatch(getComparisonAnalytics({ period1, period2, type: filter }));
     } else {
@@ -429,85 +387,6 @@ function AdminDashboard() {
                 </BarChart>
               )}
             </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Quản lý Banner</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ProductImageUpload
-            imageFile={imageFile}
-            setImageFile={setImageFile}
-            uploadedImageUrl={uploadedImageUrl}
-            setUploadedImageUrl={setUploadedImageUrl}
-            setImageLoadingState={setImageLoadingState}
-            imageLoadingState={imageLoadingState}
-            isCustomStyling={true}
-          />
-          <Button onClick={handleUploadFeatureImage} className="mt-5 w-full">
-            Upload Banner
-          </Button>
-          <div className="flex flex-col gap-4 mt-5">
-            {featureImageList && featureImageList.length > 0
-              ? featureImageList.map((featureImgItem) => (
-                <div key={featureImgItem._id} className="relative group overflow-hidden rounded-lg border">
-                  <img
-                    src={featureImgItem.image}
-                    className={`w-full h-[200px] object-cover transition-all duration-300 ${
-                      featureImgItem.enabled === false 
-                        ? "opacity-30 grayscale blur-[1px]" 
-                        : "opacity-100 grayscale-0 blur-0"
-                    }`}
-                  />
-                  
-                  {featureImgItem.enabled === false && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <span className="bg-black/60 text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-sm">
-                        Đã ẩn
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="absolute top-2 right-2 flex gap-2">
-                    <Button
-                      onClick={() =>
-                        handleToggleFeatureImageStatus(
-                          featureImgItem._id,
-                          featureImgItem.enabled
-                        )
-                      }
-                      className={`${
-                        featureImgItem.enabled === false 
-                          ? "bg-yellow-500 hover:bg-yellow-600 text-white" 
-                          : "bg-white/80 hover:bg-white text-black"
-                      } shadow-md opacity-0 group-hover:opacity-100 transition-all`}
-                      size="icon"
-                      variant="ghost"
-                      title={featureImgItem.enabled === false ? "Hiện banner" : "Ẩn banner"}
-                    >
-                      {featureImgItem.enabled === false ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </Button>
-                    <Button
-                      onClick={() =>
-                        handleDeleteFeatureImage(featureImgItem._id)
-                      }
-                      className="bg-red-500 hover:bg-red-600 text-white opacity-0 group-hover:opacity-100 shadow-md transition-all"
-                      size="icon"
-                      title="Xóa banner"
-                    >
-                      <ShoppingBag className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))
-              : null}
           </div>
         </CardContent>
       </Card>

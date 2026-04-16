@@ -278,10 +278,17 @@ function HeaderRightContent({ isOverlay = false }) {
 
 function ShoppingHeader() {
   const { isAuthenticated } = useSelector((state) => state.auth);
+  const { featureImageList } = useSelector((state) => state.commonFeature);
   const location = useLocation();
   const [homeActiveIndex, setHomeActiveIndex] = useState(0);
 
   const isHomePage = location.pathname === "/shop/home";
+
+  const activeFeatureImageList = featureImageList?.filter(
+    (item) => item.enabled !== false
+  );
+  const heroCount =
+    activeFeatureImageList?.length > 0 ? activeFeatureImageList.length : 1;
 
   useEffect(() => {
     if (!isHomePage) {
@@ -311,12 +318,13 @@ function ShoppingHeader() {
     };
   }, [isHomePage]);
 
-  const isOverlay = isHomePage && homeActiveIndex === 0;
+  const isOverlay = isHomePage && homeActiveIndex >= 0 && homeActiveIndex <= heroCount;
+  const isTransparentBg = isHomePage;
 
   return (
     <header
       className={`fixed top-0 left-0 w-full z-40 transition-colors duration-500 ${
-        isOverlay
+        isTransparentBg
           ? "bg-transparent border-transparent"
           : "bg-white border-b border-gray-200"
       }`}

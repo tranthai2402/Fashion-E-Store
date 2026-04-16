@@ -92,18 +92,31 @@ const getBestSellingProducts = async (req, res) => {
       filters.category = category;
     }
 
-    let products = await Product.find({ ...filters, isBestSeller: true })
-      .sort({ totalStock: -1 })
+    // 1. Get manually selected bestsellers first (prioritize these)
+    let manualBestsellers = await Product.find({ ...filters, isBestSeller: true })
+      .sort({ totalSold: -1 })
       .limit(4);
 
-    if (products.length === 0) {
-      products = await Product.find(filters)
-        .sort({ totalSold: -1 })
-        .limit(4);
+    let finalProducts = [...manualBestsellers];
+
+    // 2. If fewer than 4 manual bestsellers, fill remaining slots with top-selling products by totalSold
+    if (finalProducts.length < 4) {
+      const remainingCount = 4 - finalProducts.length;
+      const manualIds = manualBestsellers.map(p => p._id);
+
+      const topSellers = await Product.find({
+        ...filters,
+        isBestSeller: { $ne: true }, // Don't pick products already marked as bestsellers
+        _id: { $nin: manualIds }      // Safety check to avoid any duplicates
+      })
+      .sort({ totalSold: -1 })
+      .limit(remainingCount);
+
+      finalProducts = [...finalProducts, ...topSellers];
     }
     
     // Enrich with active automatic promotions
-    const enrichedProducts = await enrichProductsWithAutomaticPromotions(products);
+    const enrichedProducts = await enrichProductsWithAutomaticPromotions(finalProducts);
 
     res.status(200).json({
       success: true,

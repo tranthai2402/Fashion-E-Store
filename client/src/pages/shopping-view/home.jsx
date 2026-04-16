@@ -3,16 +3,12 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { getFeatureImages } from "@/store/common-slice";
-import { fetchPublicVideoSettings } from "@/store/common/video-slice";
 import { fetchBestSellingProducts } from "@/store/shop/products-slice";
 import ShoppingFooter from "@/components/shopping-view/footer";
 import ShoppingProductTile from "@/components/shopping-view/product-tile";
 import menBanner from "@/assets/login_banner_2.jpg";
 import womenBanner from "@/assets/banner_4.jpg";
 import HistoryImg from "@/assets/homephoto_history.avif";
-import duskVideo from "@/assets/dusk.mp4";
-import carWindowVideo from "@/assets/car_window.mp4";
-import telephoneVideo from "@/assets/telephone.mp4";
 
 const categoriesWithImage = [
   {
@@ -33,12 +29,11 @@ const bestSellerCategories = [
   { id: "men", label: "MEN" },
   { id: "accessories", label: "ACCESSORIES" },
   { id: "footwear", label: "FOOTWEAR" },
+  { id: "jewelry", label: "JEWELRY" },
+  { id: "handbag", label: "HANDBAG" },
 ];
 
-const HERO_VIDEO_SOURCES = [duskVideo, carWindowVideo, telephoneVideo];
-const HERO_VIDEO_PLAYBACK_RATE = 0.8;
-const HERO_VIDEO_SEGMENT_MS = 5000;
-
+const HERO_SLIDE_INTERVAL_MS = 5000;
 const SCROLL_LOCK_MS = 950;
 const SECTION_ANIMATION_CLASS =
   "transition-transform duration-700 ease-in-out will-change-transform";
@@ -46,8 +41,6 @@ const SECTION_ANIMATION_CLASS =
 function ShoppingHome() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [currentHeroVideoIndex, setCurrentHeroVideoIndex] = useState(0);
-  const [isHeroVideoReady, setIsHeroVideoReady] = useState(false);
   const [selectedBestSellerCategory, setSelectedBestSellerCategory] = useState("");
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -55,24 +48,16 @@ function ShoppingHome() {
   const activeFeatureImageList = featureImageList?.filter(
     (item) => item.enabled !== false
   );
-  const { homeVideos: configuredHomeVideos } = useSelector(
-    (state) => state.commonVideo
-  );
   const { bestSellingProducts, isLoading: isProductsLoading } = useSelector(
     (state) => state.shopProducts
   );
 
   const scrollLockRef = useRef(false);
   const scrollLockTimerRef = useRef(null);
-  const heroVideoRef = useRef(null);
-  const heroVideoSegmentTimerRef = useRef(null);
 
-  const maxIndex = 5;
-  const adminHomeVideoSources = (configuredHomeVideos || [])
-    .map((item) => item.url)
-    .filter(Boolean);
-  const heroVideoSources =
-    adminHomeVideoSources.length > 0 ? adminHomeVideoSources : HERO_VIDEO_SOURCES;
+  const heroBanners = activeFeatureImageList?.length > 0 ? activeFeatureImageList : [{ _id: "default-hero", image: womenBanner }];
+  const heroCount = heroBanners.length;
+  const maxIndex = heroCount + 4; // heroCount + 5 sections - 1
 
   const getSectionTransformClass = (sectionIndex) => {
     return sectionIndex <= activeIndex ? "translate-y-0" : "translate-y-full";
@@ -92,18 +77,11 @@ function ShoppingHome() {
     }, SCROLL_LOCK_MS);
   };
 
-  const handleSeeMore = () => {
-    if (activeIndex !== 1) {
+  const handleSeeMore = (nextIndex) => {
+    if (activeIndex !== nextIndex) {
       lockScroll();
-      setActiveIndex(1);
+      setActiveIndex(nextIndex);
     }
-  };
-
-  const queueNextHeroVideo = () => {
-    clearTimeout(heroVideoSegmentTimerRef.current);
-    heroVideoSegmentTimerRef.current = setTimeout(() => {
-      setCurrentHeroVideoIndex((prev) => (prev + 1) % heroVideoSources.length);
-    }, HERO_VIDEO_SEGMENT_MS);
   };
 
   function handleNavigateToListingPage(categoryId) {
@@ -113,38 +91,20 @@ function ShoppingHome() {
     navigate("/shop/listing");
   }
 
-  function handlePrevSlide() {
-    if (!activeFeatureImageList?.length) return;
-    setCurrentSlide((prev) =>
-      (prev - 1 + activeFeatureImageList.length) % activeFeatureImageList.length
-    );
-  }
-
-  function handleNextSlide() {
-    if (!activeFeatureImageList?.length) return;
-    setCurrentSlide((prev) => (prev + 1) % activeFeatureImageList.length);
-  }
-
   useEffect(() => {
     dispatch(getFeatureImages());
-    dispatch(fetchPublicVideoSettings());
   }, [dispatch]);
 
   useEffect(() => {
     dispatch(fetchBestSellingProducts(selectedBestSellerCategory));
   }, [dispatch, selectedBestSellerCategory]);
 
-  useEffect(() => {
-    if (currentHeroVideoIndex >= heroVideoSources.length) {
-      setCurrentHeroVideoIndex(0);
-    }
-  }, [currentHeroVideoIndex, heroVideoSources.length]);
-
+  // Section 2 banner auto-rotate (loop every 2 seconds)
   useEffect(() => {
     if (!activeFeatureImageList?.length) return;
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % activeFeatureImageList.length);
-    }, 12000);
+    }, 2000);
     return () => clearInterval(timer);
   }, [activeFeatureImageList]);
 
@@ -200,13 +160,8 @@ function ShoppingHome() {
   useEffect(() => {
     return () => {
       clearTimeout(scrollLockTimerRef.current);
-      clearTimeout(heroVideoSegmentTimerRef.current);
     };
   }, []);
-
-  useEffect(() => {
-    setIsHeroVideoReady(false);
-  }, [currentHeroVideoIndex]);
 
   const handleWheel = (e) => {
     const scrollableElement = e.target.closest(".overflow-y-auto");
@@ -238,55 +193,31 @@ function ShoppingHome() {
       className="relative h-screen w-full overflow-hidden"
       onWheel={handleWheel}
     >
-      {/* ===== Section 1: Video Hero ===== */}
-      <div
-        className={`absolute inset-0 z-0 h-screen w-full ${SECTION_ANIMATION_CLASS} ${getSectionTransformClass(
-          0
-        )}`}
-      >
-        <section className="relative h-full w-full overflow-hidden bg-black">
-          <video
-            key={currentHeroVideoIndex}
-            ref={heroVideoRef}
-            autoPlay
-            muted
-            playsInline
-            preload="auto"
-            onLoadedData={(event) => {
-              event.currentTarget.playbackRate = HERO_VIDEO_PLAYBACK_RATE;
-              event.currentTarget.currentTime = 0;
-              setIsHeroVideoReady(true);
-              queueNextHeroVideo();
-            }}
-            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${isHeroVideoReady ? "opacity-100" : "opacity-0"
-              }`}
-          >
-            <source
-              src={heroVideoSources[currentHeroVideoIndex]}
-              type="video/mp4"
+      {/* ===== Section 1: Hero Banners as Scrollable Sections ===== */}
+      {heroBanners.map((slide, index) => (
+        <div
+          key={slide._id || index}
+          style={{ zIndex: index }}
+          className={`absolute inset-0 h-screen w-full ${SECTION_ANIMATION_CLASS} ${getSectionTransformClass(
+            index
+          )}`}
+        >
+          <section className="relative h-full w-full overflow-hidden bg-black">
+            <img
+              src={slide.image}
+              alt={`Hero banner ${index + 1}`}
+              className="absolute inset-0 h-full w-full object-cover"
             />
-          </video>
-          <div className="absolute inset-0 bg-black/30" />
-
-          <div className="absolute bottom-10 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center">
-            <p className="text-[10px] uppercase tracking-widest text-white">
-              Women&apos;s Summer 26
-            </p>
-            <button
-              onClick={handleSeeMore}
-              className="mt-4 flex items-center gap-2 border-none bg-transparent text-[10px] uppercase tracking-widest text-white/90 transition-colors hover:text-white cursor-pointer"
-            >
-              See More
-              <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.25} />
-            </button>
-          </div>
-        </section>
-      </div>
+            <div className="absolute inset-0 bg-black/35" />
+          </section>
+        </div>
+      ))}
 
       {/* ===== Section 2: Spring Hero ===== */}
       <div
-        className={`absolute inset-0 z-10 h-screen w-full ${SECTION_ANIMATION_CLASS} ${getSectionTransformClass(
-          1
+        style={{ zIndex: heroCount }}
+        className={`absolute inset-0 h-screen w-full ${SECTION_ANIMATION_CLASS} ${getSectionTransformClass(
+          heroCount
         )}`}
       >
         <section className="relative h-full w-full overflow-hidden rounded-t-3xl shadow-[0_-20px_60px_rgba(0,0,0,0.25)] bg-gray-900">
@@ -311,23 +242,6 @@ function ShoppingHome() {
           )}
 
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/25 to-black/10" />
-
-          {activeFeatureImageList?.length > 1 && (
-            <>
-              <button
-                onClick={handlePrevSlide}
-                className="absolute left-6 top-1/2 z-20 -translate-y-1/2 h-10 w-10 border border-white/30 bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20 cursor-pointer"
-              >
-                <ChevronLeft className="mx-auto h-5 w-5" strokeWidth={1.4} />
-              </button>
-              <button
-                onClick={handleNextSlide}
-                className="absolute right-6 top-1/2 z-20 -translate-y-1/2 h-10 w-10 border border-white/30 bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20 cursor-pointer"
-              >
-                <ChevronRight className="mx-auto h-5 w-5" strokeWidth={1.4} />
-              </button>
-            </>
-          )}
 
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center px-6 text-center text-white">
             <h1
@@ -372,8 +286,9 @@ function ShoppingHome() {
 
       {/* ===== Section 3: Ready To Wear ===== */}
       <div
-        className={`absolute inset-0 z-20 h-screen w-full ${SECTION_ANIMATION_CLASS} ${getSectionTransformClass(
-          2
+        style={{ zIndex: heroCount + 1 }}
+        className={`absolute inset-0 h-screen w-full ${SECTION_ANIMATION_CLASS} ${getSectionTransformClass(
+          heroCount + 1
         )}`}
       >
         <section className="h-screen w-full overflow-hidden rounded-t-3xl bg-[#f5f5f0] shadow-[0_-20px_60px_rgba(0,0,0,0.18)]">
@@ -421,8 +336,9 @@ function ShoppingHome() {
 
       {/* ===== Section 4: Best Sellers ===== */}
       <div
-        className={`absolute inset-0 z-30 h-screen w-full ${SECTION_ANIMATION_CLASS} ${getSectionTransformClass(
-          3
+        style={{ zIndex: heroCount + 2 }}
+        className={`absolute inset-0 h-screen w-full ${SECTION_ANIMATION_CLASS} ${getSectionTransformClass(
+          heroCount + 2
         )}`}
       >
         <section className="h-screen w-full overflow-hidden rounded-t-3xl bg-white shadow-[0_-20px_60px_rgba(0,0,0,0.15)]">
@@ -489,8 +405,9 @@ function ShoppingHome() {
 
       {/* ===== Section 5: The Pursuit Of Perfection ===== */}
       <div
-        className={`absolute inset-0 z-40 h-screen w-full ${SECTION_ANIMATION_CLASS} ${getSectionTransformClass(
-          4
+        style={{ zIndex: heroCount + 3 }}
+        className={`absolute inset-0 h-screen w-full ${SECTION_ANIMATION_CLASS} ${getSectionTransformClass(
+          heroCount + 3
         )}`}
       >
         <section className="h-screen w-full overflow-hidden rounded-t-3xl bg-white shadow-[0_-20px_60px_rgba(0,0,0,0.12)]">
@@ -539,8 +456,9 @@ function ShoppingHome() {
 
       {/* ===== Section 6: Footer ===== */}
       <div
-        className={`absolute inset-x-0 bottom-0 z-50 w-full ${SECTION_ANIMATION_CLASS} ${getSectionTransformClass(
-          5
+        style={{ zIndex: heroCount + 4 }}
+        className={`absolute inset-x-0 bottom-0 w-full ${SECTION_ANIMATION_CLASS} ${getSectionTransformClass(
+          heroCount + 4
         )}`}
       >
         <div className="rounded-t-3xl bg-white shadow-[0_-20px_60px_rgba(0,0,0,0.1)] overflow-hidden">

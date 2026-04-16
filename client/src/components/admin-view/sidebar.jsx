@@ -5,10 +5,10 @@ import {
   Images,
   ShoppingBasket,
   Users,
-  Clapperboard,
   Tag,
   BadgePercent,
   Star,
+  ImagePlay,
 } from "lucide-react";
 import { Fragment } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -40,16 +40,16 @@ const adminSidebarMenuItems = [
     icon: <Users />,
   },
   {
+    id: "features",
+    label: "Feature Images",
+    path: "/admin/features",
+    icon: <ImagePlay />,
+  },
+  {
     id: "lookbook",
     label: "Lookbook",
     path: "/admin/lookbook",
     icon: <Images />,
-  },
-  {
-    id: "videos",
-    label: "Videos",
-    path: "/admin/videos",
-    icon: <Clapperboard />,
   },
   {
     id: "promotions",
