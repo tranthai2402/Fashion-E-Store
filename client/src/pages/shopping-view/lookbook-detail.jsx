@@ -74,6 +74,16 @@ function ShoppingLookbookDetail() {
                 <p className="mt-3 text-[10px] uppercase tracking-[0.24em] text-gray-700 group-hover:text-black transition-colors">
                   {product.title}
                 </p>
+                <div className="flex justify-start items-center gap-2 mt-1">
+                  <p className={`text-[10px] tracking-[0.12em] text-gray-500 ${product?.salePrice > 0 ? 'line-through opacity-70' : ''}`}>
+                    ${product?.price}
+                  </p>
+                  {product?.salePrice > 0 && (
+                    <p className="text-[10px] font-semibold tracking-[0.12em] text-gray-900">
+                      ${product?.salePrice}
+                    </p>
+                  )}
+                </div>
               </button>
             ))}
           </div>

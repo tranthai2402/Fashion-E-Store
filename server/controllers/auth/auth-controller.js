@@ -242,7 +242,7 @@ const authMiddleware = async (req, res, next) => {
 
 const updateUserProfile = async (req, res) => {
   try {
-    const { userName, email, phone } = req.body;
+    const { fullName, userName, email, phone } = req.body;
     const userId = req.user?.id;
 
     const currentUser = await User.findById(userId);
@@ -258,9 +258,33 @@ const updateUserProfile = async (req, res) => {
     let finalUserName = currentUser.userName || "";
     let finalEmail = currentUser.email || "";
 
+    // fullName ONLY accepts Vietnamese alphabets and spaces
+    const FULLNAME_REGEX = /^[a-zA-ZÀ-ỹÁÀẢÃẠĂẮẰẲẴẶÂẤẦẨẪẬĐÉÈẺẼẸÊẾỀỂỄỆÍÌỈĨỊÓÒỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÚÙỦŨỤƯỨỪỬỮỰÝỲỶỸỴáàảãạăắằẳẵặâấầẩẫậđéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵ\s]+$/;
+
+    if (Object.prototype.hasOwnProperty.call(req.body, "fullName")) {
+      const nextFullNameValue = String(fullName || "").trim();
+      if (nextFullNameValue) {
+        if (!FULLNAME_REGEX.test(nextFullNameValue)) {
+          return res.status(400).json({
+            success: false,
+            message: "Họ tên chỉ được chứa chữ cái, không nhập số hoặc ký tự đặc biệt",
+          });
+        }
+        updateFields.fullName = nextFullNameValue;
+      } else {
+        unsetFields.fullName = 1;
+      }
+    }
+
     if (Object.prototype.hasOwnProperty.call(req.body, "userName")) {
       const nextUserNameValue = String(userName || "").trim();
       if (nextUserNameValue) {
+        if (!USERNAME_REGEX.test(nextUserNameValue)) {
+          return res.status(400).json({
+            success: false,
+            message: "Username chỉ được chứa chữ cái (có dấu), khoảng trắng và gạch dưới",
+          });
+        }
         if (nextUserNameValue !== currentUser.userName) {
           const existingUserName = await User.findOne({
             userName: nextUserNameValue,
@@ -319,7 +343,7 @@ const updateUserProfile = async (req, res) => {
         if (!PHONE_REGEX.test(normalizedPhone)) {
           return res.status(400).json({
             success: false,
-            message: "Invalid phone number format",
+            message: "Số điện thoại không hợp lệ",
           });
         }
         updateFields.phone = normalizedPhone;
@@ -337,6 +361,7 @@ const updateUserProfile = async (req, res) => {
           role: currentUser.role,
           email: currentUser.email,
           userName: currentUser.userName,
+          fullName: currentUser.fullName,
           phone: currentUser.phone,
           avatar: currentUser.avatar,
         },
@@ -368,6 +393,7 @@ const updateUserProfile = async (req, res) => {
         role: updatedUser.role,
         email: updatedUser.email,
         userName: updatedUser.userName,
+        fullName: updatedUser.fullName,
         phone: updatedUser.phone,
         avatar: updatedUser.avatar,
       },

@@ -129,11 +129,19 @@ function ShoppingCheckout() {
       })),
       addressInfo: {
         addressId: currentSelectedAddress?._id,
-        address: currentSelectedAddress?.address,
-        city: currentSelectedAddress?.city,
-        pincode: currentSelectedAddress?.pincode,
+        // New structured fields
+        fullName: currentSelectedAddress?.fullName,
         phone: currentSelectedAddress?.phone,
+        province: currentSelectedAddress?.province,
+        district: currentSelectedAddress?.district,
+        ward: currentSelectedAddress?.ward,
+        addressDetail: currentSelectedAddress?.addressDetail,
+        addressType: currentSelectedAddress?.addressType,
         notes: currentSelectedAddress?.notes,
+        // Legacy fallbacks
+        address: currentSelectedAddress?.addressDetail || currentSelectedAddress?.address,
+        city: currentSelectedAddress?.province || currentSelectedAddress?.city,
+        pincode: currentSelectedAddress?.pincode || "",
       },
       orderStatus: "pending",
       paymentMethod: "stripe",
