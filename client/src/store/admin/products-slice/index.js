@@ -73,6 +73,17 @@ export const clearAllBestsellers = createAsyncThunk(
   }
 );
 
+export const clearAllSaleItems = createAsyncThunk(
+  "/products/clearAllSaleItems",
+  async () => {
+    const result = await axios.put(
+      "http://localhost:5000/api/admin/products/clear-sale-items"
+    );
+
+    return result?.data;
+  }
+);
+
 const AdminProductsSlice = createSlice({
   name: "adminProducts",
   initialState,

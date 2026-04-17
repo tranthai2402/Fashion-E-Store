@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   getFeatureImages,
   addFeatureImage,
   deleteFeatureImage,
   updateFeatureImageStatus,
+  reorderFeatureImages,
 } from "@/store/common-slice";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,8 +18,124 @@ import {
   UploadCloud,
   Loader2,
   Images,
+  GripHorizontal,
 } from "lucide-react";
 import axios from "axios";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+function SortableFeatureItem({ item, index, handleToggleStatus, handleDelete }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item._id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : 1,
+    opacity: isDragging ? 0.7 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`group relative overflow-hidden rounded-xl border-2 transition-transform duration-200 ${
+        item.enabled !== false
+          ? "border-sky-300 shadow-md"
+          : "border-gray-200 opacity-60"
+      }`}
+    >
+      <div className="aspect-[3/4] w-full overflow-hidden bg-gray-100 relative">
+        <img
+          src={item.image}
+          alt={`Feature ${index + 1}`}
+          className={`h-full w-full object-cover ${
+            item.enabled === false ? "opacity-30 grayscale blur-[1px]" : "opacity-100"
+          }`}
+        />
+
+        {item.enabled === false && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span className="bg-black/60 text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-sm shadow-lg border border-white/20">
+              Đã ẩn
+            </span>
+          </div>
+        )}
+      </div>
+
+      <div className="absolute top-2 left-2">
+        <Badge
+          className={`text-[10px] px-2 py-0.5 font-medium ${
+            item.enabled !== false ? "bg-sky-500 text-white" : "bg-gray-400 text-white"
+          }`}
+        >
+          {item.enabled !== false ? "Đang hiện" : "Đang ẩn"}
+        </Badge>
+      </div>
+
+      <div
+        className="absolute top-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white cursor-grab active:cursor-grabbing backdrop-blur-sm"
+        {...attributes}
+        {...listeners}
+      >
+        <GripHorizontal className="h-4 w-4" />
+      </div>
+
+      <div className="absolute bottom-2 right-2 flex h-6 w-6 items-center justify-center rounded-sm bg-black/50 text-[10px] font-bold text-white pointer-events-none z-10">
+        {index + 1}
+      </div>
+
+      <div className="absolute inset-x-0 bottom-0 flex justify-center gap-2 bg-gradient-to-t from-black/80 to-transparent p-3 pt-6 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+        <Button
+          size="sm"
+          variant="secondary"
+          className="flex-1 gap-1 text-xs h-8"
+          onClick={() => handleToggleStatus(item)}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          {item.enabled !== false ? (
+            <>
+              <EyeOff className="h-3.5 w-3.5" /> Ẩn
+            </>
+          ) : (
+            <>
+              <Eye className="h-3.5 w-3.5" /> Hiện
+            </>
+          )}
+        </Button>
+        <Button
+          size="sm"
+          variant="destructive"
+          className="gap-1 text-xs h-8 px-2"
+          onClick={() => handleDelete(item._id)}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 function AdminFeatures() {
   const dispatch = useDispatch();
@@ -27,15 +144,31 @@ function AdminFeatures() {
     (state) => state.commonFeature
   );
 
-  const [isDragging, setIsDragging] = useState(false);
+  const [isDraggingUpload, setIsDraggingUpload] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const inputRef = useRef(null);
+
+  const [localItems, setLocalItems] = useState([]);
 
   useEffect(() => {
     dispatch(getFeatureImages());
   }, [dispatch]);
 
-  // ── Upload helpers ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    setLocalItems(featureImageList || []);
+  }, [featureImageList]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   const uploadAndSave = async (file) => {
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
@@ -79,14 +212,13 @@ function AdminFeatures() {
     if (file) uploadAndSave(file);
   };
 
-  const handleDrop = (e) => {
+  const handleDropUpload = (e) => {
     e.preventDefault();
-    setIsDragging(false);
+    setIsDraggingUpload(false);
     const file = e.dataTransfer.files?.[0];
     if (file) uploadAndSave(file);
   };
 
-  // ── Actions ────────────────────────────────────────────────────────────────
   const handleToggleStatus = (item) => {
     dispatch(
       updateFeatureImageStatus({ id: item._id, enabled: !item.enabled })
@@ -94,8 +226,8 @@ function AdminFeatures() {
       if (res?.payload?.success) {
         toast({
           title: item.enabled
-            ? "Ảnh đã được ẩn khỏi trang chủ"
-            : "Ảnh đã được hiện trên trang chủ",
+            ? "Ảnh đã được ẩn"
+            : "Ảnh đang được hiển thị",
         });
         dispatch(getFeatureImages());
       }
@@ -112,11 +244,33 @@ function AdminFeatures() {
     });
   };
 
-  const enabledCount = featureImageList?.filter((i) => i.enabled !== false).length ?? 0;
+  const handleDragEnd = useCallback(
+    (event) => {
+      const { active, over } = event;
+      if (active.id !== over?.id) {
+        setLocalItems((items) => {
+          const oldIndex = items.findIndex((item) => item._id === active.id);
+          const newIndex = items.findIndex((item) => item._id === over.id);
+
+          const newArr = arrayMove(items, oldIndex, newIndex);
+          const payload = newArr.map((img, index) => ({
+            id: img._id,
+            order: index,
+          }));
+
+          dispatch(reorderFeatureImages(payload));
+
+          return newArr;
+        });
+      }
+    },
+    [dispatch]
+  );
+
+  const enabledCount = localItems.filter((i) => i.enabled !== false).length;
 
   return (
     <div className="flex flex-col gap-8 p-6 max-w-5xl mx-auto">
-      {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -124,22 +278,24 @@ function AdminFeatures() {
             Quản lý Feature Images
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Ảnh người mẫu/sản phẩm hiển thị ở trang chủ (Hero Section &amp; Banner).
+            Kéo thả biểu tượng ở góc trên cùng bên phải mỗi ảnh để thay đổi vị trí.
             Đang hiển thị:{" "}
             <span className="font-semibold text-sky-600">{enabledCount}</span> /{" "}
-            {featureImageList?.length ?? 0} ảnh
+            {localItems.length} ảnh
           </p>
         </div>
       </div>
 
-      {/* ── Upload Zone ── */}
       <div
-        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-        onDragLeave={() => setIsDragging(false)}
-        onDrop={handleDrop}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDraggingUpload(true);
+        }}
+        onDragLeave={() => setIsDraggingUpload(false)}
+        onDrop={handleDropUpload}
         onClick={() => !isUploading && inputRef.current?.click()}
         className={`relative flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-10 cursor-pointer transition-all duration-200 ${
-          isDragging
+          isDraggingUpload
             ? "border-sky-400 bg-sky-50 scale-[1.01]"
             : "border-gray-300 bg-gray-50 hover:border-sky-400 hover:bg-sky-50"
         }`}
@@ -154,120 +310,55 @@ function AdminFeatures() {
         {isUploading ? (
           <>
             <Loader2 className="h-10 w-10 animate-spin text-sky-400" />
-            <p className="text-sm text-sky-600 font-medium">Đang upload ảnh…</p>
+            <p className="text-sm text-sky-600 font-medium">Đang upload...</p>
           </>
         ) : (
           <>
             <UploadCloud className="h-10 w-10 text-gray-400" />
             <p className="text-sm font-medium text-gray-600">
-              Kéo &amp; thả ảnh vào đây hoặc{" "}
-              <span className="text-sky-500 underline">nhấn để chọn</span>
+              Kéo thả ảnh hoặc <span className="text-sky-500 underline">bấm để chọn</span>
             </p>
-            <p className="text-xs text-gray-400">PNG, JPG, WEBP — tối đa 5MB</p>
+            <p className="text-xs text-gray-400">PNG, JPG — dưới 5MB</p>
           </>
         )}
       </div>
 
-      {/* ── Image Grid ── */}
-      {isLoading && !featureImageList?.length ? (
-        <div className="flex items-center justify-center h-48">
+      {isLoading && !localItems.length ? (
+        <div className="flex justify-center h-48 items-center">
           <Loader2 className="h-8 w-8 animate-spin text-sky-400" />
         </div>
-      ) : featureImageList?.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-gray-200 bg-gray-50 py-20 text-gray-400">
+      ) : localItems.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 border border-dashed py-20 text-gray-400 bg-gray-50 rounded-2xl">
           <Images className="h-12 w-12" />
-          <p className="text-sm">Chưa có ảnh nào. Hãy upload ảnh đầu tiên!</p>
+          <p className="text-sm">Chưa có ảnh nào. Rất trống trải!</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {featureImageList.map((item, index) => (
-            <div
-              key={item._id}
-              className={`group relative overflow-hidden rounded-xl border-2 transition-all duration-200 ${
-                item.enabled !== false
-                  ? "border-sky-300 shadow-md"
-                  : "border-gray-200 opacity-60"
-              }`}
-            >
-              {/* Image */}
-              <div className="aspect-[3/4] w-full overflow-hidden bg-gray-100 relative">
-                <img
-                  src={item.image}
-                  alt={`Feature ${index + 1}`}
-                  className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${
-                    item.enabled === false 
-                      ? "opacity-30 grayscale blur-[1px]" 
-                      : "opacity-100"
-                  }`}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            <SortableContext items={localItems.map((i) => i._id)} strategy={rectSortingStrategy}>
+              {localItems.map((item, index) => (
+                <SortableFeatureItem
+                  key={item._id}
+                  item={item}
+                  index={index}
+                  handleToggleStatus={handleToggleStatus}
+                  handleDelete={handleDelete}
                 />
-                
-                {item.enabled === false && (
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <span className="bg-black/60 text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-sm shadow-lg border border-white/20">
-                      Đã ẩn
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Status badge */}
-              <div className="absolute top-2 left-2">
-                <Badge
-                  className={`text-[10px] px-2 py-0.5 font-medium ${
-                    item.enabled !== false
-                      ? "bg-sky-500 text-white"
-                      : "bg-gray-400 text-white"
-                  }`}
-                >
-                  {item.enabled !== false ? "Đang hiển thị" : "Đang ẩn"}
-                </Badge>
-              </div>
-
-              {/* Order number */}
-              <div className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-[10px] font-bold text-white">
-                {index + 1}
-              </div>
-
-              {/* Hover actions */}
-              <div className="absolute inset-0 flex items-end justify-center gap-2 bg-black/40 p-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="flex-1 gap-1 text-xs"
-                  onClick={() => handleToggleStatus(item)}
-                >
-                  {item.enabled !== false ? (
-                    <>
-                      <EyeOff className="h-3.5 w-3.5" /> Ẩn
-                    </>
-                  ) : (
-                    <>
-                      <Eye className="h-3.5 w-3.5" /> Hiện
-                    </>
-                  )}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  className="gap-1 text-xs"
-                  onClick={() => handleDelete(item._id)}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
+              ))}
+            </SortableContext>
+          </div>
+        </DndContext>
       )}
 
-      {/* ── Tips ── */}
       <div className="rounded-xl border border-sky-100 bg-sky-50 p-4 text-sm text-sky-800">
-        <p className="font-semibold mb-1">💡 Gợi ý</p>
+        <p className="font-semibold mb-1">💡 Hướng dẫn</p>
         <ul className="list-disc list-inside space-y-1 text-sky-700 text-xs">
-          <li>Ảnh sẽ hiển thị theo thứ tự từ trên xuống.</li>
-          <li>Ảnh nào <strong>Đang ẩn</strong> sẽ không xuất hiện trên trang chủ.</li>
-          <li>Nên dùng ảnh người mẫu có tỉ lệ dọc (3:4) để hiển thị đẹp nhất.</li>
-          <li>Hero Section (Section 1) chuyển ảnh mỗi 5 giây, Banner chuyển mỗi 12 giây.</li>
+          <li><strong>Kéo thả</strong> ảnh bằng biểu tượng góc trên phải để đổi vị trí. Vị trí này sẽ hiển thị cho khách đúng như vậy.</li>
+          <li>Ảnh bị "Ẩn" sẽ được bỏ qua trên băng chuyền Trang chủ.</li>
         </ul>
       </div>
     </div>

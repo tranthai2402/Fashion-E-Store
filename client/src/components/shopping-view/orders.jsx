@@ -80,11 +80,13 @@ function ShoppingOrders() {
                     <TableCell>
                       <Badge
                         className={`rounded-full px-2.5 py-1 text-[9px] uppercase tracking-[0.14em] ${
-                          orderItem?.orderStatus === "confirmed"
-                            ? "bg-green-600"
-                            : orderItem?.orderStatus === "rejected"
-                            ? "bg-red-600"
-                            : "bg-gray-900"
+                          orderItem?.orderStatus === "confirmed" ? "bg-blue-600 hover:bg-blue-700" :
+                          orderItem?.orderStatus === "inProcess" ? "bg-cyan-600 hover:bg-cyan-700" :
+                          orderItem?.orderStatus === "inShipping" ? "bg-indigo-600 hover:bg-indigo-700" :
+                          orderItem?.orderStatus === "delivered" ? "bg-green-600 hover:bg-green-700" :
+                          orderItem?.orderStatus === "rejected" ? "bg-red-600 hover:bg-red-700" :
+                          orderItem?.orderStatus === "pending" ? "bg-yellow-600 hover:bg-yellow-700" :
+                          "bg-gray-900"
                         }`}
                       >
                         {orderItem?.orderStatus}

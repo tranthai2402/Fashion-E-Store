@@ -161,11 +161,13 @@ function AdminOrdersView() {
                       <TableCell>
                         <Badge
                           className={`py-1 px-3 ${
-                            orderItem?.orderStatus === "confirmed"
-                              ? "bg-green-500"
-                              : orderItem?.orderStatus === "rejected"
-                              ? "bg-red-600"
-                              : "bg-black"
+                            orderItem?.orderStatus === "confirmed" ? "bg-blue-500 hover:bg-blue-600" :
+                            orderItem?.orderStatus === "inProcess" ? "bg-cyan-500 hover:bg-cyan-600" :
+                            orderItem?.orderStatus === "inShipping" ? "bg-indigo-500 hover:bg-indigo-600" :
+                            orderItem?.orderStatus === "delivered" ? "bg-green-500 hover:bg-green-600" :
+                            orderItem?.orderStatus === "rejected" ? "bg-red-600 hover:bg-red-700" :
+                            orderItem?.orderStatus === "pending" ? "bg-yellow-500 hover:bg-yellow-600" :
+                            "bg-black"
                           }`}
                         >
                           {orderItem?.orderStatus}

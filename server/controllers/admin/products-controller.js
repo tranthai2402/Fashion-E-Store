@@ -155,6 +155,7 @@ const addProduct = async (req, res) => {
       averageReview,
       variants: generatedVariants,
       isBestSeller: isBestSeller || false,
+      isSaleItem: isSaleItem || false,
     });
 
     await newlyCreatedProduct.save();
@@ -297,6 +298,7 @@ const editProduct = async (req, res) => {
     findProduct.averageReview = averageReview || findProduct.averageReview;
     findProduct.variants = generatedVariants;
     findProduct.isBestSeller = isBestSeller !== undefined ? isBestSeller : findProduct.isBestSeller;
+    findProduct.isSaleItem = isSaleItem !== undefined ? isSaleItem : findProduct.isSaleItem;
 
     await findProduct.save();
     res.status(200).json({
@@ -354,6 +356,23 @@ const clearAllBestsellers = async (req, res) => {
   }
 };
 
+const clearAllSaleItems = async (req, res) => {
+  try {
+    await Product.updateMany({}, { isSaleItem: false });
+
+    res.status(200).json({
+      success: true,
+      message: "Đã xóa tất cả sản phẩm khỏi danh sách Sale Items",
+    });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({
+      success: false,
+      message: "Error occured",
+    });
+  }
+};
+
 module.exports = {
   handleImageUpload,
   addProduct,
@@ -361,4 +380,5 @@ module.exports = {
   editProduct,
   deleteProduct,
   clearAllBestsellers,
+  clearAllSaleItems,
 };

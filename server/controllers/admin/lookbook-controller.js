@@ -43,7 +43,7 @@ const getAllLookbooksForAdmin = async (_req, res) => {
   try {
     const data = await Lookbook.find({})
       .populate("products", "title image isActive")
-      .sort({ createdAt: -1 });
+      .sort({ order: 1 });
 
     return res.status(200).json({
       success: true,
@@ -77,8 +77,38 @@ const deleteLookbook = async (req, res) => {
   }
 };
 
+const reorderLookbooks = async (req, res) => {
+  try {
+    const { items } = req.body; // Array of { id, order }
+
+    if (Array.isArray(items)) {
+      await Promise.all(
+        items.map((item) =>
+          Lookbook.findByIdAndUpdate(item.id, { order: item.order })
+        )
+      );
+    }
+
+    const data = await Lookbook.find({})
+      .populate("products", "title image isActive")
+      .sort({ order: 1 });
+
+    return res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: "Some error occurred",
+    });
+  }
+};
+
 module.exports = {
   addLookbook,
   getAllLookbooksForAdmin,
   deleteLookbook,
+  reorderLookbooks,
 };

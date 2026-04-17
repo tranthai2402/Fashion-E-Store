@@ -278,47 +278,11 @@ function HeaderRightContent({ isOverlay = false }) {
 
 function ShoppingHeader() {
   const { isAuthenticated } = useSelector((state) => state.auth);
-  const { featureImageList } = useSelector((state) => state.commonFeature);
   const location = useLocation();
-  const [homeActiveIndex, setHomeActiveIndex] = useState(0);
-
+  const { headerTextColor } = useSelector((state) => state.commonFeature);
   const isHomePage = location.pathname === "/shop/home";
 
-  const activeFeatureImageList = featureImageList?.filter(
-    (item) => item.enabled !== false
-  );
-  const heroCount =
-    activeFeatureImageList?.length > 0 ? activeFeatureImageList.length : 1;
-
-  useEffect(() => {
-    if (!isHomePage) {
-      setHomeActiveIndex(1);
-      return;
-    }
-
-    const applyActiveIndex = (nextIndex) => {
-      setHomeActiveIndex(typeof nextIndex === "number" ? nextIndex : 0);
-    };
-
-    const handleHomeActiveIndexChange = (event) => {
-      applyActiveIndex(event?.detail);
-    };
-
-    applyActiveIndex(window.__homeActiveIndex);
-    window.addEventListener(
-      "home-active-index-change",
-      handleHomeActiveIndexChange
-    );
-
-    return () => {
-      window.removeEventListener(
-        "home-active-index-change",
-        handleHomeActiveIndexChange
-      );
-    };
-  }, [isHomePage]);
-
-  const isOverlay = isHomePage && homeActiveIndex >= 0 && homeActiveIndex <= heroCount;
+  const isOverlay = isHomePage && headerTextColor === "white";
   const isTransparentBg = isHomePage;
 
   return (

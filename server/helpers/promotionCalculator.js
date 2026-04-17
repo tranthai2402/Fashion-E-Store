@@ -255,15 +255,30 @@ const enrichProductsWithAutomaticPromotions = async (products) => {
     type: { $in: ["automatic", "flash_sale", "seasonal"] },
     startDate: { $lte: now },
     endDate: { $gte: now },
-    "conditions.minOrderValue": { $lte: 0 },
-    "conditions.minQuantity": { $lte: 0 }
+    $and: [
+      {
+        $or: [
+          { "conditions.minOrderValue": { $lte: 0 } },
+          { "conditions.minOrderValue": { $exists: false } },
+          { "conditions.minOrderValue": null },
+        ],
+      },
+      {
+        $or: [
+          { "conditions.minQuantity": { $lte: 0 } },
+          { "conditions.minQuantity": { $exists: false } },
+          { "conditions.minQuantity": null },
+        ],
+      },
+    ],
   }).sort({ priority: -1 });
 
   if (!activePromos.length) return products;
 
-  return products.map(product => {
-    let bestSalePrice = product.salePrice && product.salePrice > 0 ? product.salePrice : 0;
+  return products.map((product) => {
     const basePrice = product.price;
+    let bestSalePrice =
+      product.salePrice && product.salePrice > 0 ? product.salePrice : 0;
 
     for (const promo of activePromos) {
       // Check conditions
@@ -275,8 +290,12 @@ const enrichProductsWithAutomaticPromotions = async (products) => {
       if (isRestricted) {
         const prodId = product._id.toString();
         const category = product.category ? product.category.toLowerCase() : "";
-        const isProductMatch = productCond.some(pId => pId.toString() === prodId);
-        const isCategoryMatch = categoryCond.some(cat => cat && cat.toLowerCase() === category);
+        const isProductMatch = productCond.some(
+          (pId) => pId.toString() === prodId
+        );
+        const isCategoryMatch = categoryCond.some(
+          (cat) => cat && cat.toLowerCase() === category
+        );
         isMatch = isProductMatch || isCategoryMatch;
       }
 
@@ -285,21 +304,19 @@ const enrichProductsWithAutomaticPromotions = async (products) => {
         let calculatedSalePrice = 0;
 
         if (action.discountType === "percentage") {
-          calculatedSalePrice = basePrice * (1 - (action.discountValue / 100));
+          calculatedSalePrice = basePrice * (1 - action.discountValue / 100);
         } else if (action.discountType === "fixed_amount") {
           calculatedSalePrice = Math.max(0, basePrice - action.discountValue);
         }
 
-        if (calculatedSalePrice > 0) {
-          // Nếu chưa có salePrice gốc hoặc giá khuyến mãi tự động mới thấp hơn (giảm nhiều hơn), ta dùng nó.
+        // Chỉ áp dụng nếu giá sau giảm THỰC SỰ thấp hơn giá gốc và tốt hơn giá sale hiện tại
+        if (calculatedSalePrice > 0 && calculatedSalePrice < basePrice) {
           if (bestSalePrice === 0 || calculatedSalePrice < bestSalePrice) {
             bestSalePrice = calculatedSalePrice;
           }
-          
-          // Sau khi tìm thấy 1 promo áp dụng được (theo độ ưu tiên cao nhất đã sort),
-          // Nếu logic hệ thống chỉ cho áp dụng 1 promo cao nhất, ta break.
-          // Ở đây ta break vì activePromos đã sort theo priority.
-          break;
+          // Tiếp tục kiểm tra các promo khác nếu muốn tìm giá thấp nhất tuyệt đối, 
+          // nhưng do đã sort theo priority nên thường promo đầu tiên đã là promo quan trọng nhất.
+          // Tuy nhiên ta sẽ bỏ break để đảm bảo tìm được giá THẤP NHẤT (Best Deal)
         }
       }
     }

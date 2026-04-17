@@ -4,6 +4,7 @@ import axios from "axios";
 const initialState = {
   isLoading: false,
   featureImageList: [],
+  headerTextColor: "white",
 };
 
 export const getFeatureImages = createAsyncThunk(
@@ -52,10 +53,26 @@ export const updateFeatureImageStatus = createAsyncThunk(
   }
 );
 
+export const reorderFeatureImages = createAsyncThunk(
+  "/order/reorderFeatureImages",
+  async (items) => {
+    const response = await axios.put(
+      `http://localhost:5000/api/common/feature/reorder`,
+      { items }
+    );
+
+    return response.data;
+  }
+);
+
 const commonSlice = createSlice({
   name: "commonSlice",
   initialState,
-  reducers: {},
+  reducers: {
+    setHeaderTextColor: (state, action) => {
+      state.headerTextColor = action.payload;
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(getFeatureImages.pending, (state) => {
@@ -101,8 +118,20 @@ const commonSlice = createSlice({
       })
       .addCase(updateFeatureImageStatus.rejected, (state) => {
         state.isLoading = false;
+      })
+      .addCase(reorderFeatureImages.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(reorderFeatureImages.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.featureImageList = action.payload.data;
+      })
+      .addCase(reorderFeatureImages.rejected, (state) => {
+        state.isLoading = false;
       });
   },
 });
+
+export const { setHeaderTextColor } = commonSlice.actions;
 
 export default commonSlice.reducer;

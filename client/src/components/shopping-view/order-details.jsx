@@ -8,7 +8,7 @@ function ShoppingOrderDetailsView({ orderDetails }) {
   const { user } = useSelector((state) => state.auth);
 
   return (
-    <DialogContent className="sm:max-w-[640px] border border-gray-200 bg-white p-0">
+    <DialogContent className="sm:max-w-[640px] max-h-[90vh] overflow-y-auto border border-gray-200 bg-white p-0">
       <div className="grid gap-6">
         <div className="grid gap-2 px-6 pt-6">
           <div className="flex items-center justify-between border-b border-gray-100 pb-2">
@@ -47,9 +47,15 @@ function ShoppingOrderDetailsView({ orderDetails }) {
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-500">
               Payment Status
             </p>
-            <Label className="text-[11px] uppercase tracking-[0.14em] text-gray-900">
-              {orderDetails?.paymentStatus}
-            </Label>
+            <Badge
+                className={`rounded-full px-2.5 py-1 text-[9px] uppercase tracking-[0.14em] ${
+                  orderDetails?.paymentStatus === "paid" ? "bg-green-600 hover:bg-green-700" :
+                  orderDetails?.paymentStatus === "failed" ? "bg-red-600 hover:bg-red-700" :
+                  "bg-yellow-600 hover:bg-yellow-700"
+                }`}
+              >
+              {orderDetails?.paymentStatus || "pending"}
+            </Badge>
           </div>
           <div className="flex items-center justify-between pt-1">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-500">
@@ -58,11 +64,13 @@ function ShoppingOrderDetailsView({ orderDetails }) {
             <Label>
               <Badge
                 className={`rounded-full px-2.5 py-1 text-[9px] uppercase tracking-[0.14em] ${
-                  orderDetails?.orderStatus === "confirmed"
-                    ? "bg-green-600"
-                    : orderDetails?.orderStatus === "rejected"
-                    ? "bg-red-600"
-                    : "bg-gray-900"
+                  orderDetails?.orderStatus === "confirmed" ? "bg-blue-600 hover:bg-blue-700" :
+                  orderDetails?.orderStatus === "inProcess" ? "bg-cyan-600 hover:bg-cyan-700" :
+                  orderDetails?.orderStatus === "inShipping" ? "bg-indigo-600 hover:bg-indigo-700" :
+                  orderDetails?.orderStatus === "delivered" ? "bg-green-600 hover:bg-green-700" :
+                  orderDetails?.orderStatus === "rejected" ? "bg-red-600 hover:bg-red-700" :
+                  orderDetails?.orderStatus === "pending" ? "bg-yellow-600 hover:bg-yellow-700" :
+                  "bg-gray-900"
                 }`}
               >
                 {orderDetails?.orderStatus}

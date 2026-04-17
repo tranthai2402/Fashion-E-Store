@@ -1,4 +1,5 @@
 const Product = require("../../models/Product");
+const Promotion = require("../../models/Promotion");
 const { enrichProductsWithAutomaticPromotions } = require("../../helpers/promotionCalculator");
 
 const getFilteredProducts = async (req, res) => {
@@ -131,4 +132,108 @@ const getBestSellingProducts = async (req, res) => {
   }
 };
 
-module.exports = { getFilteredProducts, getProductDetails, getBestSellingProducts };
+const getSaleProducts = async (req, res) => {
+  try {
+    const { category = "" } = req.query;
+    const now = new Date();
+
+    // 1. Find all active and unconditional promotions (automatic, flash_sale, seasonal)
+    const activePromos = await Promotion.find({
+      status: "active",
+      type: { $in: ["automatic", "flash_sale", "seasonal"] },
+      startDate: { $lte: now },
+      endDate: { $gte: now },
+      $and: [
+        {
+          $or: [
+            { "conditions.minOrderValue": { $lte: 0 } },
+            { "conditions.minOrderValue": { $exists: false } },
+            { "conditions.minOrderValue": null },
+          ],
+        },
+        {
+          $or: [
+            { "conditions.minQuantity": { $lte: 0 } },
+            { "conditions.minQuantity": { $exists: false } },
+            { "conditions.minQuantity": null },
+          ],
+        },
+      ],
+    });
+
+    // 2. Extract product IDs and categories from these promotions
+    let promoProductIds = [];
+    let promoCategories = [];
+
+    activePromos.forEach((promo) => {
+      if (promo.conditions?.applicableProducts?.length > 0) {
+        promoProductIds = [
+          ...promoProductIds,
+          ...promo.conditions.applicableProducts.map((id) => id.toString()),
+        ];
+      }
+      if (promo.conditions?.applicableCategories?.length > 0) {
+        promoCategories = [
+          ...promoCategories,
+          ...promo.conditions.applicableCategories.map((cat) =>
+            cat.toLowerCase()
+          ),
+        ];
+      }
+    });
+
+    let filters = { isActive: true };
+    if (category) {
+      filters.category = category;
+    }
+
+    // 3. Get manually selected sale items (isSaleItem)
+    let manualSaleItems = await Product.find({ ...filters, isSaleItem: true })
+      .sort({ updatedAt: -1 })
+      .limit(8);
+
+    let finalProducts = [...manualSaleItems];
+
+    // 4. Fill remaining slots with products that satisfy:
+    //    a) Have a salePrice > 0 stored in DB
+    //    b) OR are explicitly linked in an active promotion
+    //    c) OR belong to a category linked in an active promotion
+    if (finalProducts.length < 8) {
+      const remainingCount = 8 - finalProducts.length;
+      const manualIds = manualSaleItems.map(p => p._id);
+
+      const dynamicSaleQuery = {
+        ...filters,
+        isSaleItem: { $ne: true },
+        _id: { $nin: manualIds },
+        $or: [
+          { salePrice: { $gt: 0 } },
+          { _id: { $in: promoProductIds } },
+          { category: { $in: promoCategories } }
+        ]
+      };
+
+      const computedSales = await Product.find(dynamicSaleQuery)
+        .sort({ updatedAt: -1 })
+        .limit(remainingCount);
+
+      finalProducts = [...finalProducts, ...computedSales];
+    }
+
+    // Enrich with active automatic promotions (to calculate the actual display price)
+    const enrichedProducts = await enrichProductsWithAutomaticPromotions(finalProducts);
+
+    res.status(200).json({
+      success: true,
+      data: enrichedProducts,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      success: false,
+      message: "Some error occured",
+    });
+  }
+};
+
+module.exports = { getFilteredProducts, getProductDetails, getBestSellingProducts, getSaleProducts };

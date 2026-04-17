@@ -6,6 +6,7 @@ const initialState = {
   productList: [],
   productDetails: null,
   bestSellingProducts: [],
+  saleProducts: [],
 };
 
 export const fetchAllFilteredProducts = createAsyncThunk(
@@ -34,6 +35,18 @@ export const fetchBestSellingProducts = createAsyncThunk(
     const query = category ? `?category=${category}` : "";
     const result = await axios.get(
       `http://localhost:5000/api/shop/products/best-selling${query}`
+    );
+
+    return result?.data;
+  }
+);
+
+export const fetchSaleProducts = createAsyncThunk(
+  "/products/fetchSaleProducts",
+  async (category) => {
+    const query = category ? `?category=${category}` : "";
+    const result = await axios.get(
+      `http://localhost:5000/api/shop/products/sale-products${query}`
     );
 
     return result?.data;
@@ -82,6 +95,17 @@ const shoppingProductSlice = createSlice({
       .addCase(fetchBestSellingProducts.rejected, (state) => {
         state.isLoading = false;
         state.bestSellingProducts = [];
+      })
+      .addCase(fetchSaleProducts.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(fetchSaleProducts.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.saleProducts = action.payload.data;
+      })
+      .addCase(fetchSaleProducts.rejected, (state) => {
+        state.isLoading = false;
+        state.saleProducts = [];
       })
       .addCase(fetchProductDetails.pending, (state, action) => {
         state.isLoading = true;

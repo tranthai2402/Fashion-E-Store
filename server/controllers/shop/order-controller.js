@@ -302,7 +302,7 @@ const capturePayment = async (req, res) => {
     // if (session.payment_status !== 'paid') return res.status(400).json({...})
 
     order.paymentStatus = "paid";
-    order.orderStatus = "inProcess";
+    order.orderStatus = "confirmed";
     order.paymentId = sessionId; // Lưu sessionId của Stripe thay cho paymentId của PayPal
 
     if (!order.stockReserved) {

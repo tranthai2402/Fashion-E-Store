@@ -28,7 +28,7 @@ const addFeatureImage = async (req, res) => {
 
 const getFeatureImages = async (req, res) => {
   try {
-    const images = await Feature.find({});
+    const images = await Feature.find({}).sort({ order: 1 });
 
     res.status(200).json({
       success: true,
@@ -100,9 +100,37 @@ const deleteFeatureImage = async (req, res) => {
   }
 };
 
+const reorderFeatureImages = async (req, res) => {
+  try {
+    const { items } = req.body; // Array of { id, order }
+
+    if (Array.isArray(items)) {
+      await Promise.all(
+        items.map((item) =>
+          Feature.findByIdAndUpdate(item.id, { order: item.order })
+        )
+      );
+    }
+
+    const images = await Feature.find({}).sort({ order: 1 });
+
+    res.status(200).json({
+      success: true,
+      data: images,
+    });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({
+      success: false,
+      message: "Some error occured!",
+    });
+  }
+};
+
 module.exports = {
   addFeatureImage,
   getFeatureImages,
   updateFeatureImageStatus,
   deleteFeatureImage,
+  reorderFeatureImages,
 };

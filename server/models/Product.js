@@ -32,6 +32,10 @@ const ProductSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isSaleItem: {
+      type: Boolean,
+      default: false,
+    },
     variants: [
       {
         size: String,

@@ -46,6 +46,20 @@ export const deleteLookbook = createAsyncThunk(
   }
 );
 
+export const reorderLookbooks = createAsyncThunk(
+  "/admin/lookbook/reorder",
+  async (items) => {
+    const response = await axios.put(
+      `http://localhost:5000/api/admin/lookbook/reorder`,
+      { items },
+      {
+        withCredentials: true,
+      }
+    );
+    return response.data;
+  }
+);
+
 const adminLookbookSlice = createSlice({
   name: "adminLookbook",
   initialState,
@@ -79,6 +93,16 @@ const adminLookbookSlice = createSlice({
         state.isLoading = false;
       })
       .addCase(deleteLookbook.rejected, (state) => {
+        state.isLoading = false;
+      })
+      .addCase(reorderLookbooks.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(reorderLookbooks.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.lookbookList = action.payload.data || [];
+      })
+      .addCase(reorderLookbooks.rejected, (state) => {
         state.isLoading = false;
       });
   },
