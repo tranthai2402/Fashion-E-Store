@@ -269,13 +269,29 @@ function ShoppingHome() {
           )}`}
         >
           {section.type === "hero" && (
-            <section className="relative h-full w-full overflow-hidden bg-black">
+            <section className="relative h-full w-full overflow-hidden bg-black group/hero">
               <img
                 src={section.data.image}
                 alt="Banner"
-                className="absolute inset-0 h-full w-full object-cover"
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-[2s] group-hover/hero:scale-110"
               />
               <div className="absolute inset-0 bg-black/35" />
+
+              {/* Lookbook Link Button */}
+              {section.data.lookbookId && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <motion.button
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5, duration: 0.8 }}
+                    onClick={() => navigate(`/shop/lookbook/${section.data.lookbookId}`)}
+                    className="group/btn relative px-10 py-4 bg-white/10 backdrop-blur-md border border-white/30 rounded-full text-white text-[11px] font-black uppercase tracking-[0.4em] overflow-hidden transition-all hover:bg-white hover:text-black hover:border-white shadow-2xl scale-90 hover:scale-100"
+                  >
+                    <span className="relative z-10">Discover Lookbook</span>
+                    <div className="absolute inset-0 bg-white translate-y-full group-hover/btn:translate-y-0 transition-transform duration-500 ease-out"></div>
+                  </motion.button>
+                </div>
+              )}
             </section>
           )}
 

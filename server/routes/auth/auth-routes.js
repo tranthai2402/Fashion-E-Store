@@ -2,6 +2,8 @@ const express = require("express");
 const passport = require("passport");
 const {
   registerUser,
+  verifyUser,
+  verifyLink,
   loginUser,
   logoutUser,
   authMiddleware,
@@ -13,6 +15,8 @@ const {
 const router = express.Router();
 
 router.post("/register", registerUser);
+router.post("/verify", verifyUser);
+router.get("/verify-link", verifyLink);
 router.post("/login", loginUser);
 router.post("/logout", logoutUser);
 router.get("/check-auth", authMiddleware, (req, res) => {

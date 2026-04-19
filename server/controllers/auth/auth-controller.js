@@ -1,30 +1,35 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 const User = require("../../models/User");
+const { sendVerificationEmail } = require("../../helpers/emailService");
+const { sendVerificationSMS } = require("../../helpers/smsService");
 
 const EMAIL_REGEX = /^[a-zA-Z0-9](?:[a-zA-Z0-9.]*[a-zA-Z0-9])?@gmail\.com$/;
-const PHONE_REGEX = /^\+?\d{9,15}$/;
+const PHONE_REGEX = /^0\d{9}$/;
 // Username: chỉ cho phép chữ cái (có dấu tiếng Việt), dấu cách, gạch dưới. Không cho phép số và ký tự đặc biệt.
 const USERNAME_REGEX = /^[a-zA-ZÀ-ỹ\s_]+$/;
-// Password: tối thiểu 6 ký tự, ít nhất 1 chữ hoa, 1 chữ thường, 1 số
-const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
+// Password: tối thiểu 8 ký tự, ít nhất 1 chữ hoa, 1 chữ thường, 1 số, 1 ký tự đặc biệt
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
 const validateIdentifier = (identifier) => {
   const errors = [];
-  if (identifier.includes('@')) {
+  const val = identifier.trim();
+
+  if (val.includes('@')) {
     // Validate as email
-    if (!EMAIL_REGEX.test(identifier)) {
-      errors.push("Email phải là địa chỉ @gmail.com hợp lệ (ví dụ: example@gmail.com)");
+    if (!EMAIL_REGEX.test(val)) {
+      errors.push("Email phải là địa chỉ @gmail.com hợp lệ");
     }
   } else {
     // Validate as username
-    if (!USERNAME_REGEX.test(identifier)) {
+    if (!USERNAME_REGEX.test(val)) {
       errors.push("Tên người dùng chỉ được chứa chữ cái, không được có ký tự đặc biệt hoặc số");
     }
-    if (identifier.length < 3) {
+    if (val.length < 3) {
       errors.push("Tên người dùng phải có ít nhất 3 ký tự");
     }
-    if (identifier.length > 30) {
+    if (val.length > 30) {
       errors.push("Tên người dùng không được quá 30 ký tự");
     }
   }
@@ -33,13 +38,14 @@ const validateIdentifier = (identifier) => {
 
 const validatePassword = (password) => {
   const errors = [];
-  if (!password || password.length < 6) {
-    errors.push("Mật khẩu phải có ít nhất 6 ký tự");
+  if (!password || password.length < 8) {
+    errors.push("Mật khẩu phải có ít nhất 8 ký tự");
   }
   if (password && !PASSWORD_REGEX.test(password)) {
     if (!/[a-z]/.test(password)) errors.push("Mật khẩu phải có ít nhất 1 chữ thường");
     if (!/[A-Z]/.test(password)) errors.push("Mật khẩu phải có ít nhất 1 chữ hoa");
     if (!/\d/.test(password)) errors.push("Mật khẩu phải có ít nhất 1 chữ số");
+    if (!/[@$!%*?&]/.test(password)) errors.push("Mật khẩu phải có ít nhất 1 ký tự đặc biệt (@$!%*?&)");
   }
   return errors;
 };
@@ -47,22 +53,37 @@ const validatePassword = (password) => {
 //register
 const registerUser = async (req, res) => {
   const { userName, email, password } = req.body;
-  const identifier = email || userName;
 
   try {
-    if (!identifier) {
+    if (!userName || !userName.trim()) {
       return res.json({
         success: false,
-        message: "Vui lòng nhập tên người dùng hoặc email để đăng ký",
+        message: "Vui lòng nhập tên người dùng",
       });
     }
 
-    // Validate identifier (email or username)
-    const identifierErrors = validateIdentifier(identifier.trim());
-    if (identifierErrors.length > 0) {
+    if (!email || !email.trim()) {
       return res.json({
         success: false,
-        message: identifierErrors.join(". "),
+        message: "Vui lòng nhập email đăng ký",
+      });
+    }
+
+    // Validate userName
+    const userNameErrors = validateIdentifier(userName.trim());
+    if (userNameErrors.length > 0) {
+      return res.json({
+        success: false,
+        message: "Lỗi tên người dùng: " + userNameErrors.join(". "),
+      });
+    }
+
+    // Validate email
+    const emailErrors = validateIdentifier(email.trim());
+    if (emailErrors.length > 0) {
+      return res.json({
+        success: false,
+        message: "Lỗi email: " + emailErrors.join(". "),
       });
     }
 
@@ -75,49 +96,167 @@ const registerUser = async (req, res) => {
       });
     }
 
+    // Check if user already exists
     const checkUser = await User.findOne({
       $or: [
-        { email: identifier },
-        { userName: identifier }
+        { userName: userName.trim() },
+        { email: email.trim() }
       ]
     });
-    if (checkUser)
+
+    if (checkUser) {
       return res.json({
         success: false,
-        message: "Tài khoản đã tồn tại với email hoặc tên người dùng này! Vui lòng thử lại",
+        message: "Tên người dùng hoặc email đã được sử dụng! Vui lòng thử lại",
       });
-
-    const hashPassword = await bcrypt.hash(password, 12);
-    const userPayload = { password: hashPassword };
-
-    if (identifier.includes('@')) {
-      userPayload.email = identifier;
-    } else {
-      userPayload.userName = identifier;
     }
 
-    const newUser = new User(userPayload);
+    const hashPassword = await bcrypt.hash(password, 12);
+    
+    // Generate secure verification token
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    const verificationTokenExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
 
+    const newUser = new User({ 
+      userName: userName.trim(),
+      email: email.trim(),
+      password: hashPassword,
+      verificationToken,
+      verificationTokenExpires,
+      isVerified: false,
+    });
+    
     await newUser.save();
+
+    // Send the verification link
+    try {
+      await sendVerificationEmail(email.trim(), verificationToken);
+    } catch (sendError) {
+      console.error("Error sending verification email:", sendError);
+      // We still registered the user, but they might need to resend email
+    }
+
     res.status(200).json({
       success: true,
-      message: "Đăng ký thành công",
+      message: "Đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản.",
     });
   } catch (e) {
     console.log(e);
     res.status(500).json({
       success: false,
-      message: "Đã xảy ra lỗi",
+      message: "Đã xảy ra lỗi trong quá trình đăng ký",
+    });
+  }
+};
+
+// Verify user via link
+const verifyLink = async (req, res) => {
+  const { token, email } = req.query;
+
+  try {
+    if (!token || !email) {
+      return res.redirect(`${process.env.CLIENT_URL || "http://localhost:5173"}/auth/login?error=invalid_verification`);
+    }
+
+    const user = await User.findOne({
+      email: email.trim(),
+      verificationToken: token.trim(),
+      verificationTokenExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.redirect(`${process.env.CLIENT_URL || "http://localhost:5173"}/auth/login?error=verification_expired`);
+    }
+
+    user.isVerified = true;
+    user.verificationToken = undefined;
+    user.verificationTokenExpires = undefined;
+    await user.save();
+
+    const jwtToken = jwt.sign(
+      {
+        id: user._id,
+        role: user.role,
+        email: user.email,
+        userName: user.userName,
+      },
+      "CLIENT_SECRET_KEY",
+      { expiresIn: "60m" }
+    );
+
+    res.cookie("token", jwtToken, { httpOnly: true, secure: false })
+      .redirect(`${process.env.CLIENT_URL || "http://localhost:5173"}/shop/home`);
+  } catch (e) {
+    console.log(e);
+    res.redirect(`${process.env.CLIENT_URL || "http://localhost:5173"}/auth/login?error=server_error`);
+  }
+};
+
+// Verify user (fallback or alternative method)
+const verifyUser = async (req, res) => {
+  const { email, token } = req.body;
+
+  try {
+    if (!email || !token) {
+      return res.json({
+        success: false,
+        message: "Thiếu thông tin xác thực",
+      });
+    }
+
+    const user = await User.findOne({
+      email: email.trim(),
+      verificationToken: token.trim(),
+      verificationTokenExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.json({
+        success: false,
+        message: "Liên kết xác thực không hợp lệ hoặc đã hết hạn",
+      });
+    }
+
+    user.isVerified = true;
+    user.verificationToken = undefined;
+    user.verificationTokenExpires = undefined;
+    await user.save();
+
+    const jwtToken = jwt.sign(
+      {
+        id: user._id,
+        role: user.role,
+        email: user.email,
+        userName: user.userName,
+      },
+      "CLIENT_SECRET_KEY",
+      { expiresIn: "60m" }
+    );
+
+    res.cookie("token", jwtToken, { httpOnly: true, secure: false }).json({
+      success: true,
+      message: "Xác thực thành công",
+      user: {
+        id: user._id,
+        role: user.role,
+        email: user.email,
+        userName: user.userName,
+      }
+    });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi hệ thống trong quá trình xác thực",
     });
   }
 };
 
 //login
 const loginUser = async (req, res) => {
-  const { email, password } = req.body; // 'email' field in req.body might hold either email or userName
+  const { email, password } = req.body; 
 
   try {
-    // Validate: phải nhập email/username
     if (!email || !email.trim()) {
       return res.json({
         success: false,
@@ -125,7 +264,6 @@ const loginUser = async (req, res) => {
       });
     }
 
-    // Validate: phải nhập password
     if (!password) {
       return res.json({
         success: false,
@@ -133,23 +271,25 @@ const loginUser = async (req, res) => {
       });
     }
 
-    // Validate identifier format (email or username)
-    const identifierErrors = validateIdentifier(email.trim());
-    if (identifierErrors.length > 0) {
-      return res.json({
-        success: false,
-        message: identifierErrors.join(". "),
-      });
-    }
-
     const checkUser = await User.findOne({
-      $or: [{ email: email }, { userName: email }],
+      $or: [
+        { email: email.trim() }, 
+        { userName: email.trim() }
+      ],
     });
+
     if (!checkUser)
       return res.json({
         success: false,
         message: "Tài khoản không tồn tại! Vui lòng đăng ký trước",
       });
+
+    if (!checkUser.isVerified) {
+      return res.json({
+        success: false,
+        message: "Tài khoản của bạn chưa được xác thực. Vui lòng kiểm tra email.",
+      });
+    }
 
     const checkPasswordMatch = await bcrypt.compare(
       password,
@@ -180,7 +320,6 @@ const loginUser = async (req, res) => {
         role: checkUser.role,
         id: checkUser._id,
         userName: checkUser.userName,
-        phone: checkUser.phone,
         avatar: checkUser.avatar,
       },
     });
@@ -509,6 +648,8 @@ const googleAuthCallback = (req, res) => {
 
 module.exports = {
   registerUser,
+  verifyUser,
+  verifyLink,
   loginUser,
   logoutUser,
   authMiddleware,

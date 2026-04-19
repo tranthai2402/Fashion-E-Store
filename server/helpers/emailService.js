@@ -32,4 +32,32 @@ const sendNewsletterVoucher = async (email, voucherCode) => {
   return transporter.sendMail(mailOptions);
 };
 
-module.exports = { sendNewsletterVoucher };
+const sendVerificationEmail = async (email, token) => {
+  const verificationLink = `${process.env.SERVER_URL || 'http://localhost:5000'}/api/auth/verify-link?token=${token}&email=${email}`;
+
+  const mailOptions = {
+    from: process.env.MAIL_USER,
+    to: email,
+    subject: "Xác thực tài khoản của bạn - Saint Laurent",
+    html: `
+      <div style="font-family: 'Playfair Display', serif; line-height: 1.6; color: #000; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; padding: 40px; text-align: center;">
+        <h1 style="text-transform: uppercase; letter-spacing: 5px; font-weight: 300; margin-bottom: 30px;">Saint Laurent</h1>
+        <p style="font-size: 14px; text-transform: uppercase; letter-spacing: 2px; color: #666; margin-bottom: 20px;">Xác thực tài khoản</p>
+        <p style="font-size: 16px; margin-bottom: 30px;">Cảm ơn bạn đã tham gia cộng đồng của chúng tôi. Vui lòng nhấn vào nút bên dưới để kích hoạt tài khoản của bạn:</p>
+        <div style="margin: 30px 0;">
+          <a href="${verificationLink}" style="background: #000; color: #fff; padding: 15px 30px; text-decoration: none; font-size: 14px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; display: inline-block;">
+            Xác thực tài khoản
+          </a>
+        </div>
+        <p style="font-size: 12px; color: #999; margin-top: 30px;">Nút này sẽ hết hạn trong vòng 24 giờ.</p>
+        <p style="font-size: 12px; color: #999;">Nếu bạn không yêu cầu xác thực này, vui lòng bỏ qua email này.</p>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 40px 0;" />
+        <p style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #ccc;">© 2026 Saint Laurent. All rights reserved.</p>
+      </div>
+    `,
+  };
+
+  return transporter.sendMail(mailOptions);
+};
+
+module.exports = { sendNewsletterVoucher, sendVerificationEmail };

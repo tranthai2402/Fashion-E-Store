@@ -7,6 +7,11 @@ const FeatureSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    lookbookId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Lookbook",
+      default: null,
+    },
     order: {
       type: Number,
       default: 0,

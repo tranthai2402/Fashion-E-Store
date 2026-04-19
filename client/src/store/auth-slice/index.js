@@ -39,6 +39,22 @@ export const loginUser = createAsyncThunk(
   }
 );
 
+export const verifyUser = createAsyncThunk(
+  "/auth/verify",
+
+  async (formData) => {
+    const response = await axios.post(
+      "http://localhost:5000/api/auth/verify",
+      formData,
+      {
+        withCredentials: true,
+      }
+    );
+
+    return response.data;
+  }
+);
+
 export const logoutUser = createAsyncThunk(
   "/auth/logout",
 
@@ -168,7 +184,20 @@ const authSlice = createSlice({
       .addCase(updateUserProfile.rejected, () => {})
       .addCase(changeUserPassword.pending, () => {})
       .addCase(changeUserPassword.fulfilled, () => {})
-      .addCase(changeUserPassword.rejected, () => {});
+      .addCase(changeUserPassword.rejected, () => {})
+      .addCase(verifyUser.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(verifyUser.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload.success ? action.payload.user : null;
+        state.isAuthenticated = action.payload.success;
+      })
+      .addCase(verifyUser.rejected, (state) => {
+        state.isLoading = false;
+        state.user = null;
+        state.isAuthenticated = false;
+      });
   },
 });
 

@@ -33,6 +33,20 @@ export const addNewLookbook = createAsyncThunk(
   }
 );
 
+export const editLookbook = createAsyncThunk(
+  "/admin/lookbook/edit",
+  async ({ id, payload }) => {
+    const response = await axios.put(
+      `http://localhost:5000/api/admin/lookbook/update/${id}`,
+      payload,
+      {
+        withCredentials: true,
+      }
+    );
+    return response.data;
+  }
+);
+
 export const deleteLookbook = createAsyncThunk(
   "/admin/lookbook/delete",
   async (id) => {
@@ -103,6 +117,15 @@ const adminLookbookSlice = createSlice({
         state.lookbookList = action.payload.data || [];
       })
       .addCase(reorderLookbooks.rejected, (state) => {
+        state.isLoading = false;
+      })
+      .addCase(editLookbook.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(editLookbook.fulfilled, (state) => {
+        state.isLoading = false;
+      })
+      .addCase(editLookbook.rejected, (state) => {
         state.isLoading = false;
       });
   },

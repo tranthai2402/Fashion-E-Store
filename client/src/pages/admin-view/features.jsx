@@ -6,7 +6,9 @@ import {
   deleteFeatureImage,
   updateFeatureImageStatus,
   reorderFeatureImages,
+  updateFeatureImage
 } from "@/store/common-slice";
+import { fetchAllLookbooksAdmin } from "@/store/admin/lookbook-slice";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
@@ -19,6 +21,7 @@ import {
   Loader2,
   Images,
   GripHorizontal,
+  Link2,
 } from "lucide-react";
 import axios from "axios";
 import {
@@ -37,8 +40,15 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 
-function SortableFeatureItem({ item, index, handleToggleStatus, handleDelete }) {
+function SortableFeatureItem({ item, index, handleToggleStatus, handleDelete, lookbooks, handleUpdateLookbook, handleUpdateImage }) {
   const {
     attributes,
     listeners,
@@ -59,13 +69,13 @@ function SortableFeatureItem({ item, index, handleToggleStatus, handleDelete }) 
     <div
       ref={setNodeRef}
       style={style}
-      className={`group relative overflow-hidden rounded-xl border-2 transition-transform duration-200 ${
+      className={`group relative rounded-xl border-2 transition-transform duration-200 ${
         item.enabled !== false
           ? "border-sky-300 shadow-md"
           : "border-gray-200 opacity-60"
       }`}
     >
-      <div className="aspect-[3/4] w-full overflow-hidden bg-gray-100 relative">
+      <div className="aspect-[3/4] w-full overflow-hidden rounded-t-[10px] bg-gray-100 relative">
         <img
           src={item.image}
           alt={`Feature ${index + 1}`}
@@ -81,6 +91,32 @@ function SortableFeatureItem({ item, index, handleToggleStatus, handleDelete }) 
             </span>
           </div>
         )}
+      </div>
+
+      {/* Lookbook Link Selector */}
+      <div 
+        className="absolute top-12 left-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-20"
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <Select
+          value={item.lookbookId || "none"}
+          onValueChange={(val) => handleUpdateLookbook(item._id, val === "none" ? null : val)}
+        >
+          <SelectTrigger className="h-8 bg-white/90 backdrop-blur-sm text-[10px] font-bold border-none shadow-lg">
+            <div className="flex items-center gap-1.5 truncate">
+               <Link2 className="h-3 w-3 text-sky-500" />
+               <SelectValue placeholder="Gắn Lookbook..." />
+            </div>
+          </SelectTrigger>
+          <SelectContent className="z-[100]">
+            <SelectItem value="none" className="text-[10px]">Không gắn link</SelectItem>
+            {lookbooks?.map((look, i) => (
+              <SelectItem key={look._id} value={look._id} className="text-[10px]">
+                Lookbook #{i + 1}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="absolute top-2 left-2">
@@ -109,20 +145,44 @@ function SortableFeatureItem({ item, index, handleToggleStatus, handleDelete }) 
         <Button
           size="sm"
           variant="secondary"
-          className="flex-1 gap-1 text-xs h-8"
+          className="flex-1 gap-1 text-[10px] h-8 px-2"
           onClick={() => handleToggleStatus(item)}
           onPointerDown={(e) => e.stopPropagation()}
         >
           {item.enabled !== false ? (
             <>
-              <EyeOff className="h-3.5 w-3.5" /> Ẩn
+              <EyeOff className="h-3 w-3" /> Ẩn
             </>
           ) : (
             <>
-              <Eye className="h-3.5 w-3.5" /> Hiện
+              <Eye className="h-3 w-3" /> Hiện
             </>
           )}
         </Button>
+        <div className="relative flex-1 group/edit">
+            <Button
+              size="sm"
+              variant="secondary"
+              className="w-full gap-1 text-[10px] h-8 px-2 hover:bg-sky-500 hover:text-white transition-colors"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={() => {
+                const input = document.getElementById(`edit-image-${item._id}`);
+                if (input) input.click();
+              }}
+            >
+              <Images className="h-3 w-3" /> Sửa ảnh
+            </Button>
+            <input 
+              type="file"
+              id={`edit-image-${item._id}`}
+              className="hidden"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleUpdateImage(item, file);
+              }}
+            />
+        </div>
         <Button
           size="sm"
           variant="destructive"
@@ -143,6 +203,7 @@ function AdminFeatures() {
   const { featureImageList, isLoading } = useSelector(
     (state) => state.commonFeature
   );
+  const { lookbookList } = useSelector((state) => state.adminLookbook);
 
   const [isDraggingUpload, setIsDraggingUpload] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -152,6 +213,7 @@ function AdminFeatures() {
 
   useEffect(() => {
     dispatch(getFeatureImages());
+    dispatch(fetchAllLookbooksAdmin());
   }, [dispatch]);
 
   useEffect(() => {
@@ -189,7 +251,7 @@ function AdminFeatures() {
       );
       if (res?.data?.success) {
         const imageUrl = res.data.result.url;
-        const result = await dispatch(addFeatureImage(imageUrl));
+        const result = await dispatch(addFeatureImage({ image: imageUrl, lookbookId: null }));
         if (result?.payload?.success) {
           toast({ title: "Đã thêm ảnh thành công!" });
           dispatch(getFeatureImages());
@@ -244,6 +306,61 @@ function AdminFeatures() {
     });
   };
 
+  const handleUpdateImage = async (item, file) => {
+    if (!file) return;
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("my_file", file);
+      const res = await axios.post(
+        "http://localhost:5000/api/admin/products/upload-image",
+        formData
+      );
+      if (res?.data?.success) {
+        const imageUrl = res.data.result.url;
+        dispatch(
+          updateFeatureImage({ 
+            id: item._id, 
+            image: imageUrl, 
+            enabled: item.enabled, 
+            lookbookId: item.lookbookId 
+          })
+        ).then((res) => {
+          if (res?.payload?.success) {
+            toast({ title: "Đã cập nhật ảnh thành công" });
+            dispatch(getFeatureImages());
+          }
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Lỗi upload",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleUpdateLookbook = (id, lookbookId) => {
+    const item = localItems.find(i => i._id === id);
+    if (!item) return;
+
+    dispatch(
+      updateFeatureImage({ 
+        id, 
+        image: item.image, 
+        enabled: item.enabled, 
+        lookbookId 
+      })
+    ).then((res) => {
+      if (res?.payload?.success) {
+        toast({ title: "Đã cập nhật link Lookbook" });
+        dispatch(getFeatureImages());
+      }
+    });
+  };
+
   const handleDragEnd = useCallback(
     (event) => {
       const { active, over } = event;
@@ -270,18 +387,18 @@ function AdminFeatures() {
   const enabledCount = localItems.filter((i) => i.enabled !== false).length;
 
   return (
-    <div className="flex flex-col gap-8 p-6 max-w-5xl mx-auto">
+    <div className="flex flex-col gap-8 p-6 max-w-6xl mx-auto pb-20">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <ImagePlay className="text-sky-500" />
-            Quản lý Feature Images
+            <ImagePlay className="text-sky-500 h-6 w-6" />
+            Quản lý Hero Banners
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Kéo thả biểu tượng ở góc trên cùng bên phải mỗi ảnh để thay đổi vị trí.
-            Đang hiển thị:{" "}
-            <span className="font-semibold text-sky-600">{enabledCount}</span> /{" "}
-            {localItems.length} ảnh
+          <p className="text-xs font-bold text-sky-500 uppercase tracking-widest mt-1">
+            Thiết kế banner và liên kết bộ sưu tập Lookbook
+          </p>
+          <p className="text-[10px] text-gray-400 font-medium uppercase tracking-tight mt-1">
+            Đang hiển thị: <span className="font-bold text-sky-600">{enabledCount}</span> / {localItems.length} ảnh
           </p>
         </div>
       </div>
@@ -333,6 +450,15 @@ function AdminFeatures() {
           <p className="text-sm">Chưa có ảnh nào. Rất trống trải!</p>
         </div>
       ) : (
+        <div className="space-y-6">
+        <div className="flex items-end justify-between px-2">
+             <div>
+                <h3 className="text-xl font-bold uppercase tracking-tighter">Danh sách Banners ({localItems.length})</h3>
+                <div className="h-1 w-10 bg-sky-500 rounded-full mt-1"></div>
+             </div>
+             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Kéo thả để sắp xếp vị trí</p>
+        </div>
+
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -347,6 +473,9 @@ function AdminFeatures() {
                   index={index}
                   handleToggleStatus={handleToggleStatus}
                   handleDelete={handleDelete}
+                  lookbooks={lookbookList}
+                  handleUpdateLookbook={handleUpdateLookbook}
+                  handleUpdateImage={handleUpdateImage}
                 />
               ))}
             </SortableContext>

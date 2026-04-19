@@ -14,8 +14,8 @@ const addLookbook = async (req, res) => {
 
     const normalizedProducts = Array.isArray(products)
       ? products
-          .filter((id) => mongoose.Types.ObjectId.isValid(id))
-          .map((id) => new mongoose.Types.ObjectId(id))
+        .filter((id) => mongoose.Types.ObjectId.isValid(id))
+        .map((id) => new mongoose.Types.ObjectId(id))
       : [];
 
     const lookbook = new Lookbook({
@@ -39,10 +39,48 @@ const addLookbook = async (req, res) => {
   }
 };
 
+const updateLookbook = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { imageUrl, products } = req.body;
+
+    const normalizedProducts = Array.isArray(products)
+      ? products
+        .filter((id) => mongoose.Types.ObjectId.isValid(id))
+        .map((id) => new mongoose.Types.ObjectId(id))
+      : [];
+
+    const lookbook = await Lookbook.findByIdAndUpdate(
+      id,
+      { imageUrl, products: normalizedProducts },
+      { new: true }
+    );
+
+    if (!lookbook) {
+      return res.status(404).json({
+        success: false,
+        message: "Lookbook not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: lookbook,
+      message: "Lookbook updated successfully",
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: "Some error occurred",
+    });
+  }
+};
+
 const getAllLookbooksForAdmin = async (_req, res) => {
   try {
     const data = await Lookbook.find({})
-      .populate("products", "title image isActive")
+      .populate("products", "title image price salePrice isActive")
       .sort({ order: 1 });
 
     return res.status(200).json({
@@ -90,7 +128,7 @@ const reorderLookbooks = async (req, res) => {
     }
 
     const data = await Lookbook.find({})
-      .populate("products", "title image isActive")
+      .populate("products", "title image price salePrice isActive")
       .sort({ order: 1 });
 
     return res.status(200).json({
@@ -108,6 +146,7 @@ const reorderLookbooks = async (req, res) => {
 
 module.exports = {
   addLookbook,
+  updateLookbook,
   getAllLookbooksForAdmin,
   deleteLookbook,
   reorderLookbooks,

@@ -122,6 +122,16 @@ function AdminPromotions() {
       isPublic: formData.isPublic,
       code: formData.code // Include for update
     };
+    
+    // Validation for percentage discount
+    if (payload.action.discountType === "percentage" && payload.action.discountValue >= 100) {
+      toast({
+        title: "Lỗi validation",
+        description: "Mức giảm phần trăm phải nhỏ hơn 100%",
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (currentEditedId) {
       dispatch(updatePromotion({ id: currentEditedId, formData: payload })).then((res) => {
@@ -333,7 +343,19 @@ function AdminPromotions() {
               </div>
               <div className="space-y-2">
                 <Label>Mức Giảm</Label>
-                <Input required type="number" min="0" value={formData.discountValue} onChange={(e) => setFormData({...formData, discountValue: e.target.value})} />
+                <Input 
+                  required 
+                  type="number" 
+                  min="0" 
+                  max={formData.discountType === "percentage" ? "99" : undefined}
+                  value={formData.discountValue} 
+                  onChange={(e) => setFormData({...formData, discountValue: e.target.value})} 
+                />
+                {formData.discountType === "percentage" && Number(formData.discountValue) >= 100 && (
+                  <p className="text-[10px] text-red-500 mt-1 font-medium">
+                    Mức giảm phần trăm phải nhỏ hơn 100%
+                  </p>
+                )}
               </div>
             </div>
 

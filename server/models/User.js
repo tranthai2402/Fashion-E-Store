@@ -16,6 +16,8 @@ const UserSchema = new mongoose.Schema({
   },
   phone: {
     type: String,
+    unique: true,
+    sparse: true,
   },
   avatar: {
     type: String,
@@ -32,6 +34,16 @@ const UserSchema = new mongoose.Schema({
   role: {
     type: String,
     default: "user",
+  },
+  verificationToken: {
+    type: String,
+  },
+  verificationTokenExpires: {
+    type: Date,
+  },
+  isVerified: {
+    type: Boolean,
+    default: false,
   },
 }, { timestamps: true });
 

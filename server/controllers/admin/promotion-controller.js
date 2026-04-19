@@ -7,6 +7,13 @@ const Voucher = require("../../models/Voucher");
 
 const createPromotion = async (req, res) => {
   try {
+    const { action } = req.body;
+    if (action && action.discountType === "percentage" && action.discountValue >= 100) {
+      return res.status(400).json({
+        success: false,
+        message: "Mức giảm phần trăm phải nhỏ hơn 100%",
+      });
+    }
     const newPromotion = new Promotion(req.body);
     await newPromotion.save();
     return res.status(201).json({
@@ -23,6 +30,15 @@ const createPromotion = async (req, res) => {
 const updatePromotion = async (req, res) => {
   try {
     const { id } = req.params;
+    const { action } = req.body;
+
+    if (action && action.discountType === "percentage" && action.discountValue >= 100) {
+      return res.status(400).json({
+        success: false,
+        message: "Mức giảm phần trăm phải nhỏ hơn 100%",
+      });
+    }
+
     const updatedPromo = await Promotion.findByIdAndUpdate(id, req.body, { new: true });
     
     if (!updatedPromo) {

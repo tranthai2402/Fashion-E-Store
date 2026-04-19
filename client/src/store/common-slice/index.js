@@ -20,10 +20,22 @@ export const getFeatureImages = createAsyncThunk(
 
 export const addFeatureImage = createAsyncThunk(
   "/order/addFeatureImage",
-  async (image) => {
+  async ({ image, lookbookId }) => {
     const response = await axios.post(
       `http://localhost:5000/api/common/feature/add`,
-      { image }
+      { image, lookbookId }
+    );
+
+    return response.data;
+  }
+);
+
+export const updateFeatureImage = createAsyncThunk(
+  "/order/updateFeatureImage",
+  async ({ id, image, enabled, lookbookId }) => {
+    const response = await axios.put(
+      `http://localhost:5000/api/common/feature/update/${id}`,
+      { image, enabled, lookbookId }
     );
 
     return response.data;
@@ -127,6 +139,21 @@ const commonSlice = createSlice({
         state.featureImageList = action.payload.data;
       })
       .addCase(reorderFeatureImages.rejected, (state) => {
+        state.isLoading = false;
+      })
+      .addCase(updateFeatureImage.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(updateFeatureImage.fulfilled, (state, action) => {
+        state.isLoading = false;
+        const index = state.featureImageList.findIndex(
+          (item) => item._id === action.payload.data._id
+        );
+        if (index !== -1) {
+          state.featureImageList[index] = action.payload.data;
+        }
+      })
+      .addCase(updateFeatureImage.rejected, (state) => {
         state.isLoading = false;
       });
   },
