@@ -6,6 +6,7 @@ const {
   getOrderDetails,
   capturePayment,
   checkProductPurchase,
+  handlePaymentWebhook
 } = require("../../controllers/shop/order-controller");
 
 const router = express.Router();
@@ -15,5 +16,8 @@ router.post("/capture", capturePayment);
 router.get("/list/:userId", getAllOrdersByUser);
 router.get("/details/:id", getOrderDetails);
 router.get("/check-purchase/:userId/:productId", checkProductPurchase);
+
+// Webhook for automated payment verification (e.g., from SePay, PayOS, Casso)
+router.post("/webhook/payment", handlePaymentWebhook);
 
 module.exports = router;

@@ -12,6 +12,7 @@ import {
 } from "@/store/admin/order-slice";
 import { useToast } from "../ui/use-toast";
 import OrderTimeline from "../shopping-view/order-timeline";
+import { Button } from "../ui/button";
 
 const initialFormData = {
   status: "",
@@ -43,6 +44,20 @@ function AdminOrderDetailsView({ orderDetails }) {
     });
   }
 
+  function handleConfirmPayment() {
+    dispatch(
+      updateOrderStatus({ id: orderDetails?._id, orderStatus: orderDetails?.orderStatus, paymentStatus: "paid" })
+    ).then((data) => {
+      if (data?.payload?.success) {
+        dispatch(getOrderDetailsForAdmin(orderDetails?._id));
+        dispatch(getAllOrdersForAdmin());
+        toast({
+          title: "Payment confirmed successfully",
+        });
+      }
+    });
+  }
+
   return (
     <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
       <div className="grid gap-6">
@@ -64,19 +79,41 @@ function AdminOrderDetailsView({ orderDetails }) {
           </div>
           <div className="flex mt-2 items-center justify-between">
             <p className="font-medium">Payment method</p>
-            <Label className="uppercase text-sm">{orderDetails?.paymentMethod}</Label>
+            <Label className="uppercase text-sm font-bold">{orderDetails?.paymentMethod}</Label>
           </div>
+          
+          {orderDetails?.paymentMethod === "qr_code" && (
+            <div className="flex mt-2 items-center justify-between p-2 bg-orange-50 border border-orange-100 rounded">
+                <p className="font-bold text-orange-800">Số tiền QR cần nhận (Total + 2000)</p>
+                <Label className="text-orange-900 font-black text-lg">
+                    ${(orderDetails?.totalAmount + 2000).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </Label>
+            </div>
+          )}
+
           <div className="flex mt-2 items-center justify-between">
             <p className="font-medium">Payment Status</p>
-            <Badge
-              className={`py-1 px-3 ${
-                orderDetails?.paymentStatus === "paid" ? "bg-green-500 hover:bg-green-600" :
-                orderDetails?.paymentStatus === "failed" ? "bg-red-600 hover:bg-red-700" :
-                "bg-yellow-500 hover:bg-yellow-600"
-              }`}
-            >
-              {orderDetails?.paymentStatus || "pending"}
-            </Badge>
+            <div className="flex items-center gap-2">
+                <Badge
+                className={`py-1 px-3 ${
+                    orderDetails?.paymentStatus === "paid" ? "bg-green-500 hover:bg-green-600" :
+                    orderDetails?.paymentStatus === "failed" ? "bg-red-600 hover:bg-red-700" :
+                    "bg-yellow-500 hover:bg-yellow-600"
+                }`}
+                >
+                {orderDetails?.paymentStatus || "pending"}
+                </Badge>
+                {orderDetails?.paymentStatus !== "paid" && (
+                    <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="h-7 text-[10px] border-green-600 text-green-600 hover:bg-green-50"
+                        onClick={handleConfirmPayment}
+                    >
+                        Xác nhận đã nhận tiền
+                    </Button>
+                )}
+            </div>
           </div>
           <div className="flex mt-2 items-center justify-between">
             <p className="font-medium">Order Status</p>

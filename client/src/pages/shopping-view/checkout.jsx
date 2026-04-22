@@ -10,12 +10,22 @@ import { useToast } from "@/components/ui/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { CreditCard, Truck, QrCode } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import {
   fetchCartItems,
   clearCheckoutItems,
-  togglePayingItem,
   selectAllPayingItems
 } from "@/store/shop/cart-slice";
+
+// Cấu hình ngân hàng cho QR Code (VietQR)
+const BANK_CONFIG = {
+  bankId: "MB", // Mã ngân hàng (ví dụ: MB, VCB, ICB, ACB...)
+  bankName: "MB Bank",
+  accountNumber: "0384917577",
+  accountName: "NGUYEN MANH TUAN",
+};
 
 function ShoppingCheckout() {
   const { cartItems, checkoutItems = [], payingItems = [] } = useSelector((state) => state.shopCart);
@@ -23,9 +33,11 @@ function ShoppingCheckout() {
   const { approvalURL } = useSelector((state) => state.shopOrder);
   const [currentSelectedAddress, setCurrentSelectedAddress] = useState(null);
   const [isPaymentStart, setIsPaymemntStart] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("stripe");
   const [voucherCode, setVoucherCode] = useState("");
   const [availableVouchers, setAvailableVouchers] = useState([]);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -96,7 +108,7 @@ function ShoppingCheckout() {
     dispatch(fetchCartItems({ userId: user?.id, voucherCode, selectedItems: payingItems }));
   };
 
-  function handleInitiateStripePayment() {
+  function handleCheckout() {
     if (itemsToPay.length === 0) {
       toast({
         title: "Please select at least one item to pay.",
@@ -129,7 +141,6 @@ function ShoppingCheckout() {
       })),
       addressInfo: {
         addressId: currentSelectedAddress?._id,
-        // New structured fields
         fullName: currentSelectedAddress?.fullName,
         phone: currentSelectedAddress?.phone,
         province: currentSelectedAddress?.province,
@@ -138,14 +149,13 @@ function ShoppingCheckout() {
         addressDetail: currentSelectedAddress?.addressDetail,
         addressType: currentSelectedAddress?.addressType,
         notes: currentSelectedAddress?.notes,
-        // Legacy fallbacks
         address: currentSelectedAddress?.addressDetail || currentSelectedAddress?.address,
         city: currentSelectedAddress?.province || currentSelectedAddress?.city,
         pincode: currentSelectedAddress?.pincode || "",
       },
-      orderStatus: "pending",
-      paymentMethod: "stripe",
-      paymentStatus: "pending",
+      orderStatus: paymentMethod === "stripe" ? "pending" : "confirmed",
+      paymentMethod,
+      paymentStatus: paymentMethod === "stripe" ? "pending" : "unpaid",
       totalAmount: finalAmount,
       discountAmount: discountAmount,
       appliedPromotions: appliedCalculations?.appliedPromotions || [],
@@ -157,14 +167,21 @@ function ShoppingCheckout() {
 
     dispatch(createNewOrder(orderData)).then((data) => {
       if (data?.payload?.success) {
-        setIsPaymemntStart(true);
+        if (paymentMethod === "stripe") {
+            setIsPaymemntStart(true);
+        } else {
+            toast({
+                title: data.payload.message || "Order placed successfully!",
+            });
+            navigate("/shop/account");
+        }
       } else {
         setIsPaymemntStart(false);
       }
     });
   }
 
-  if (approvalURL) {
+  if (approvalURL && paymentMethod === "stripe") {
     window.location.href = approvalURL;
     return null;
   }
@@ -174,11 +191,91 @@ function ShoppingCheckout() {
       <div className="relative h-[300px] w-full overflow-hidden">
         <img src={bannerImg} className="h-full w-full object-cover object-center" alt="Checkout Banner" />
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-5 p-5 max-w-7xl mx-auto w-full">
-        <Address
-          selectedId={currentSelectedAddress}
-          setCurrentSelectedAddress={setCurrentSelectedAddress}
-        />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 mt-5 p-5 max-w-7xl mx-auto w-full">
+        <div className="space-y-8">
+          <Address
+            selectedId={currentSelectedAddress}
+            setCurrentSelectedAddress={setCurrentSelectedAddress}
+          />
+
+          <div className="bg-white border p-6 rounded-lg shadow-sm">
+            <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+              <CreditCard className="h-5 w-5" /> Phương thức thanh toán
+            </h3>
+            <RadioGroup
+              value={paymentMethod}
+              onValueChange={setPaymentMethod}
+              className="grid grid-cols-1 gap-4"
+            >
+              <div className={`relative flex items-center p-4 border rounded-lg cursor-pointer transition-all ${paymentMethod === 'stripe' ? 'border-black bg-gray-50 ring-1 ring-black' : 'hover:border-gray-300'}`}>
+                <RadioGroupItem value="stripe" id="stripe" className="sr-only" />
+                <Label htmlFor="stripe" className="flex items-center gap-4 cursor-pointer w-full">
+                  <div className="bg-sky-100 p-2 rounded-full text-sky-600">
+                    <CreditCard size={20} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-sm">Thẻ tín dụng / Ghi nợ (Stripe)</p>
+                    <p className="text-xs text-gray-500">Thanh toán an toàn qua cổng Stripe</p>
+                  </div>
+                </Label>
+              </div>
+
+              <div className={`relative flex items-center p-4 border rounded-lg cursor-pointer transition-all ${paymentMethod === 'cod' ? 'border-black bg-gray-50 ring-1 ring-black' : 'hover:border-gray-300'}`}>
+                <RadioGroupItem value="cod" id="cod" className="sr-only" />
+                <Label htmlFor="cod" className="flex items-center gap-4 cursor-pointer w-full">
+                  <div className="bg-green-100 p-2 rounded-full text-green-600">
+                    <Truck size={20} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-sm">Thanh toán khi nhận hàng (COD)</p>
+                    <p className="text-xs text-gray-500">Thanh toán bằng tiền mặt khi shipper giao tới</p>
+                  </div>
+                </Label>
+              </div>
+
+              <div className={`relative flex items-center p-4 border rounded-lg cursor-pointer transition-all ${paymentMethod === 'qr_code' ? 'border-black bg-gray-50 ring-1 ring-black' : 'hover:border-gray-300'}`}>
+                <RadioGroupItem value="qr_code" id="qr_code" className="sr-only" />
+                <Label htmlFor="qr_code" className="flex items-center gap-4 cursor-pointer w-full">
+                  <div className="bg-orange-100 p-2 rounded-full text-orange-600">
+                    <QrCode size={20} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-sm">Thanh toán qua mã QR (Chuyển khoản)</p>
+                    <p className="text-xs text-gray-500">Chuyển khoản ngân hàng qua mã VietQR</p>
+                  </div>
+                </Label>
+              </div>
+            </RadioGroup>
+
+            {paymentMethod === 'qr_code' && (
+              <div className="mt-6 p-4 bg-orange-50 border border-orange-100 rounded-lg animate-in fade-in slide-in-from-top-2">
+                <div className="space-y-1 text-sm text-orange-900">
+                  <p>Ngân hàng: <strong>{BANK_CONFIG.bankName}</strong></p>
+                  <p>Số tài khoản: <strong>{BANK_CONFIG.accountNumber}</strong></p>
+                  <p>Chủ tài khoản: <strong>{BANK_CONFIG.accountName}</strong></p>
+                  <p>Nội dung: <strong>{user?.userName}_{new Date().getTime().toString().slice(-6)}</strong></p>
+                </div>
+                <div className="mt-4 flex flex-col items-center">
+                  <div className="bg-white p-3 rounded-xl border-2 border-orange-200">
+                    <img
+                      src={`https://img.vietqr.io/image/${BANK_CONFIG.bankId}-${BANK_CONFIG.accountNumber}-compact2.png?amount=${finalAmount + 2000}&addInfo=${user?.userName}_${new Date().getTime().toString().slice(-6)}&accountName=${BANK_CONFIG.accountName}`}
+                      alt="VietQR"
+                      className="w-48 h-48"
+                    />
+                  </div>
+                  <p className="text-[11px] font-bold text-orange-800 mt-2 text-center uppercase">
+                    Vui lòng chuyển chính xác: ${(finalAmount + 2000).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-[10px] text-orange-600 mt-4 text-center">
+                    Hệ thống sẽ tự động xác nhận sau khi nhận được tiền. <br />
+                    (Sử dụng dịch vụ như PayOS/SePay để tự động hóa hoàn toàn)
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="flex flex-col gap-4">
           {sessionItems && sessionItems.length > 0 && (
             <div className="mb-2 flex items-center gap-2 px-1">
@@ -311,13 +408,13 @@ function ShoppingCheckout() {
           </div>
           <div className="mt-4 w-full">
             <Button
-              onClick={handleInitiateStripePayment}
+              onClick={handleCheckout}
               className="w-full h-12 bg-black hover:bg-gray-800 text-white font-bold text-base"
               disabled={isPaymentStart}
             >
               {isPaymentStart
                 ? "Đang khởi tạo thanh toán..."
-                : "Thanh toán ngay"}
+                : (paymentMethod === 'stripe' ? "Thanh toán ngay (Stripe)" : "Đặt hàng ngay")}
             </Button>
           </div>
         </div>
