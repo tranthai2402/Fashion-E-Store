@@ -11,6 +11,7 @@ import {
   updateOrderStatus,
 } from "@/store/admin/order-slice";
 import { useToast } from "../ui/use-toast";
+import OrderTimeline from "../shopping-view/order-timeline";
 
 const initialFormData = {
   status: "",
@@ -45,6 +46,9 @@ function AdminOrderDetailsView({ orderDetails }) {
   return (
     <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
       <div className="grid gap-6">
+        <div className="mt-6 px-2">
+          <OrderTimeline currentStatus={orderDetails?.orderStatus} />
+        </div>
         <div className="grid gap-2">
           <div className="flex mt-6 items-center justify-between">
             <p className="font-medium">Order Code</p>

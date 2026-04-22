@@ -481,6 +481,7 @@ function AdminFeatures() {
             </SortableContext>
           </div>
         </DndContext>
+        </div>
       )}
 
       <div className="rounded-xl border border-sky-100 bg-sky-50 p-4 text-sm text-sky-800">

@@ -10,11 +10,11 @@ import { useToast } from "@/components/ui/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { 
-  fetchCartItems, 
-  clearCheckoutItems, 
-  togglePayingItem, 
-  selectAllPayingItems 
+import {
+  fetchCartItems,
+  clearCheckoutItems,
+  togglePayingItem,
+  selectAllPayingItems
 } from "@/store/shop/cart-slice";
 
 function ShoppingCheckout() {
@@ -40,7 +40,7 @@ function ShoppingCheckout() {
     }
 
     return () => {
-      dispatch(clearCheckoutItems()); 
+      dispatch(clearCheckoutItems());
     };
   }, [dispatch, user?.id]);
 
@@ -48,19 +48,19 @@ function ShoppingCheckout() {
 
   const handleSelectAll = (value) => {
     if (value === false) {
-       dispatch(selectAllPayingItems([]));
+      dispatch(selectAllPayingItems([]));
     } else {
-       dispatch(selectAllPayingItems([...checkoutItems]));
+      dispatch(selectAllPayingItems([...checkoutItems]));
     }
   };
 
   useEffect(() => {
     if (user?.id && cartItems?.items?.length > 0) {
       const appliedCode = cartItems.calculations?.voucherDetails?.code || null;
-      dispatch(fetchCartItems({ 
-        userId: user.id, 
-        voucherCode: appliedCode, 
-        selectedItems: payingItems 
+      dispatch(fetchCartItems({
+        userId: user.id,
+        voucherCode: appliedCode,
+        selectedItems: payingItems
       }));
     }
   }, [payingItems, dispatch, user?.id]);
@@ -70,11 +70,11 @@ function ShoppingCheckout() {
     return `${pId}-${item.size || ''}-${item.color || ''}`;
   }
 
-  const sessionItems = (cartItems?.items || []).filter(item => 
+  const sessionItems = (cartItems?.items || []).filter(item =>
     (checkoutItems || []).includes(getItemKey(item))
   );
 
-  const itemsToPay = sessionItems.filter(item => 
+  const itemsToPay = sessionItems.filter(item =>
     (payingItems || []).includes(getItemKey(item))
   );
 
@@ -87,11 +87,11 @@ function ShoppingCheckout() {
       currentItem?.quantity,
     0
   );
-  
+
   const appliedCalculations = cartItems && cartItems.calculations ? cartItems.calculations : null;
   const discountAmount = appliedCalculations?.discountTotal || 0;
   const finalAmount = Math.max(0, totalCartAmount - discountAmount);
-  
+
   const applyVoucher = () => {
     dispatch(fetchCartItems({ userId: user?.id, voucherCode, selectedItems: payingItems }));
   };
@@ -197,30 +197,30 @@ function ShoppingCheckout() {
           )}
           {sessionItems && sessionItems.length > 0
             ? sessionItems.map((item, idx) => {
-                let itemDiscount = 0;
-                if (appliedCalculations?.appliedPromotions?.length > 0) {
-                  appliedCalculations.appliedPromotions.forEach(promo => {
-                    if (promo.productBreakdown) {
-                      const breakdown = promo.productBreakdown.find(b => 
-                        b.productId === (item.productId?._id || item.productId) && 
-                        (b.size || "") === (item.size || "") && 
-                        (b.color || "") === (item.color || "")
-                      );
-                      if (breakdown) {
-                        itemDiscount += breakdown.discountAmount;
-                      }
+              let itemDiscount = 0;
+              if (appliedCalculations?.appliedPromotions?.length > 0) {
+                appliedCalculations.appliedPromotions.forEach(promo => {
+                  if (promo.productBreakdown) {
+                    const breakdown = promo.productBreakdown.find(b =>
+                      b.productId === (item.productId?._id || item.productId) &&
+                      (b.size || "") === (item.size || "") &&
+                      (b.color || "") === (item.color || "")
+                    );
+                    if (breakdown) {
+                      itemDiscount += breakdown.discountAmount;
                     }
-                  });
-                }
-                return (
-                  <UserCartItemsContent 
-                    key={`${getItemKey(item)}-${idx}`} 
-                    cartItem={item} 
-                    discount={itemDiscount} 
-                    isCheckoutPage={true} 
-                  />
-                );
-              })
+                  }
+                });
+              }
+              return (
+                <UserCartItemsContent
+                  key={`${getItemKey(item)}-${idx}`}
+                  cartItem={item}
+                  discount={itemDiscount}
+                  isCheckoutPage={true}
+                />
+              );
+            })
             : null}
           <div className="mt-6 space-y-4">
             <div className="bg-gray-50 border p-3 rounded-md shadow-sm">
@@ -243,9 +243,9 @@ function ShoppingCheckout() {
                             </p>
                           )}
                         </div>
-                        <Button 
-                          variant="secondary" 
-                          size="sm" 
+                        <Button
+                          variant="secondary"
+                          size="sm"
                           disabled={!isEligible}
                           className={`text-[10px] h-7 px-3 ${isEligible ? 'bg-black text-white hover:bg-gray-800' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
                           onClick={() => {
@@ -262,8 +262,8 @@ function ShoppingCheckout() {
             </div>
 
             <div className="flex gap-2">
-              <Input 
-                placeholder="Nhập mã giảm giá..." 
+              <Input
+                placeholder="Nhập mã giảm giá..."
                 value={voucherCode}
                 onChange={(e) => setVoucherCode(e.target.value)}
               />
@@ -280,13 +280,13 @@ function ShoppingCheckout() {
                   <strong>Đã áp dụng:</strong> {appliedCalculations.appliedPromotions.map(p => p.name).join(', ')}
                   {appliedCalculations?.voucherDetails?.code && ` (${appliedCalculations.voucherDetails.code})`}
                 </span>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => {
                     setVoucherCode("");
                     dispatch(fetchCartItems({ userId: user?.id, selectedItems: payingItems }));
-                  }} 
+                  }}
                   className="h-6 px-2 text-red-600 hover:text-red-700 hover:bg-red-50 bg-white border border-red-200"
                 >
                   Gỡ bỏ
@@ -310,8 +310,8 @@ function ShoppingCheckout() {
             </div>
           </div>
           <div className="mt-4 w-full">
-            <Button 
-              onClick={handleInitiateStripePayment} 
+            <Button
+              onClick={handleInitiateStripePayment}
               className="w-full h-12 bg-black hover:bg-gray-800 text-white font-bold text-base"
               disabled={isPaymentStart}
             >

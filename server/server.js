@@ -26,6 +26,9 @@ const commonFeatureRouter = require("./routes/common/feature-routes");
 const commonVideoRouter = require("./routes/common/video-routes");
 const shopLookbookRouter = require("./routes/shop/lookbook-routes");
 const shopNewsletterRouter = require("./routes/shop/newsletter-routes");
+const adminPageRouter = require("./routes/admin/page-routes");
+const shopPageRouter = require("./routes/shop/page-routes");
+const adminPageSettingsRouter = require("./routes/admin/page-settings-routes");
 
 //create a database connection -> u can also
 //create a separate file for this and then import/use that file here
@@ -96,5 +99,9 @@ app.use("/api/shop/newsletter", shopNewsletterRouter);
 
 app.use("/api/common/feature", commonFeatureRouter);
 app.use("/api/common/videos", commonVideoRouter);
+
+app.use("/api/admin/pages", adminPageRouter);
+app.use("/api/shop/pages", shopPageRouter);
+app.use("/api/admin/page-settings", adminPageSettingsRouter);
 
 app.listen(PORT, () => console.log(`Server is now running on port ${PORT}`));

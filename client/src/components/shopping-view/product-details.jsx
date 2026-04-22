@@ -75,8 +75,8 @@ function ProductDetailsDialog({ open, setOpen, productDetails }) {
 
     if (getCartItems.length) {
       const indexOfCurrentItem = getCartItems.findIndex(
-        (item) => 
-          item.productId === getCurrentProductId && 
+        (item) =>
+          item.productId === getCurrentProductId &&
           item.size === selectedSize && item.color === selectedColor
       );
       if (indexOfCurrentItem > -1) {
@@ -187,8 +187,8 @@ function ProductDetailsDialog({ open, setOpen, productDetails }) {
                   key={index}
                   onClick={() => setMainImage(imgUrl)}
                   className={`relative flex-shrink-0 w-20 h-20 rounded-md overflow-hidden cursor-pointer border-2 transition-all duration-200 ${mainImage === imgUrl
-                      ? "border-primary scale-105 shadow-md"
-                      : "border-transparent opacity-70 hover:opacity-100 hover:border-muted-foreground"
+                    ? "border-primary scale-105 shadow-md"
+                    : "border-transparent opacity-70 hover:opacity-100 hover:border-muted-foreground"
                     }`}
                 >
                   <img
@@ -210,11 +210,10 @@ function ProductDetailsDialog({ open, setOpen, productDetails }) {
           </div>
           <div className="flex items-center justify-between">
             <p
-              className={`text-2xl font-semibold text-primary ${
-                (currentVariant ? currentVariant.salePrice > 0 : productDetails?.salePrice > 0) 
-                ? "line-through text-muted-foreground text-lg" 
-                : ""
-              }`}
+              className={`text-2xl font-semibold text-primary ${(currentVariant ? currentVariant.salePrice > 0 : productDetails?.salePrice > 0)
+                  ? "line-through text-muted-foreground text-lg"
+                  : ""
+                }`}
             >
               ${currentVariant ? currentVariant.price : productDetails?.price}
             </p>
@@ -244,13 +243,12 @@ function ProductDetailsDialog({ open, setOpen, productDetails }) {
                         variant={selectedSize === size ? "default" : "outline"}
                         onClick={() => !isOutOfStock && setSelectedSize(size)}
                         disabled={isOutOfStock}
-                        className={`w-10 h-10 flex items-center justify-center text-sm font-medium transition-all duration-200 rounded-none ${
-                          isOutOfStock
+                        className={`w-10 h-10 flex items-center justify-center text-sm font-medium transition-all duration-200 rounded-none ${isOutOfStock
                             ? "line-through opacity-50 cursor-not-allowed"
                             : selectedSize === size
-                            ? "ring-2 ring-primary ring-offset-2 scale-105"
-                            : "hover:bg-secondary/20"
-                        }`}
+                              ? "ring-2 ring-primary ring-offset-2 scale-105"
+                              : "hover:bg-secondary/20"
+                          }`}
                       >
                         {size}
                       </Button>
@@ -270,13 +268,12 @@ function ProductDetailsDialog({ open, setOpen, productDetails }) {
                         variant={selectedColor === color ? "default" : "outline"}
                         onClick={() => !isOutOfStock && setSelectedColor(color)}
                         disabled={isOutOfStock}
-                        className={`w-8 h-8 p-1 transition-all duration-200 rounded-none ${
-                          isOutOfStock
+                        className={`w-8 h-8 p-1 transition-all duration-200 rounded-none ${isOutOfStock
                             ? "line-through opacity-50 cursor-not-allowed"
                             : selectedColor === color
-                            ? "ring-2 ring-primary ring-offset-2 scale-105"
-                            : "hover:bg-secondary/20"
-                        }`}
+                              ? "ring-2 ring-primary ring-offset-2 scale-105"
+                              : "hover:bg-secondary/20"
+                          }`}
                       >
                         <div
                           className={`w-full h-full ${isOutOfStock ? "line-through" : ""}`}
@@ -292,7 +289,7 @@ function ProductDetailsDialog({ open, setOpen, productDetails }) {
           </div>
           <div className="mt-8 mb-8 flex flex-col gap-4">
             {(selectedSize && selectedColor && currentVariant && currentVariant.stock <= 0) ||
-             (!productDetails?.variants && productDetails?.totalStock <= 0) ? (
+              (!productDetails?.variants && productDetails?.totalStock <= 0) ? (
               <Button className="w-full opacity-60 cursor-not-allowed h-12 rounded-none uppercase font-semibold" disabled>
                 Out of Stock
               </Button>

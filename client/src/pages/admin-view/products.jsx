@@ -98,8 +98,8 @@ function AdminProducts() {
         const matchesSearch = productItem.title && productItem.title.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStock = showOutOfStockOnly
           ? (productItem.variants && productItem.variants.length > 0
-              ? productItem.variants.some(variant => variant.stock <= 0)
-              : productItem.totalStock <= 0)
+            ? productItem.variants.some(variant => variant.stock <= 0)
+            : productItem.totalStock <= 0)
           : true;
 
         return matchesSearch && matchesStock;
@@ -131,7 +131,7 @@ function AdminProducts() {
         : [],
       images: uploadedImageUrl,
       image: uploadedImageUrl.length > 0 ? uploadedImageUrl[0] : "",
-      totalStock: formData.variants.length > 0 
+      totalStock: formData.variants.length > 0
         ? formData.variants.reduce((sum, v) => sum + Number(v.stock), 0)
         : formData.totalStock
     };
@@ -357,15 +357,15 @@ function AdminProducts() {
         <div className="divide-y flex-1">
           {paginatedProducts && paginatedProducts.length > 0
             ? paginatedProducts.map((productItem) => (
-                <AdminProductTile
-                  key={productItem?._id}
-                  setFormData={setFormData}
-                  setOpenCreateProductsDialog={setOpenCreateProductsDialog}
-                  setCurrentEditedId={setCurrentEditedId}
-                  product={productItem}
-                  handleDelete={handleDelete}
-                />
-              ))
+              <AdminProductTile
+                key={productItem?._id}
+                setFormData={setFormData}
+                setOpenCreateProductsDialog={setOpenCreateProductsDialog}
+                setCurrentEditedId={setCurrentEditedId}
+                product={productItem}
+                handleDelete={handleDelete}
+              />
+            ))
             : null}
         </div>
       </div>
@@ -546,9 +546,9 @@ function AdminProducts() {
                             {variant.size} {variant.color ? `/ ${variant.color}` : ""}
                           </td>
                           <td className="px-3 py-2">
-                            <Input 
-                              type="number" 
-                              className="h-8 p-1" 
+                            <Input
+                              type="number"
+                              className="h-8 p-1"
                               value={variant.price}
                               min="0"
                               onChange={(e) => {
@@ -559,9 +559,9 @@ function AdminProducts() {
                             />
                           </td>
                           <td className="px-3 py-2">
-                            <Input 
-                              type="number" 
-                              className="h-8 p-1" 
+                            <Input
+                              type="number"
+                              className="h-8 p-1"
                               value={variant.salePrice}
                               min="0"
                               onChange={(e) => {
@@ -572,9 +572,9 @@ function AdminProducts() {
                             />
                           </td>
                           <td className="px-3 py-2">
-                            <Input 
-                              type="number" 
-                              className="h-8 p-1" 
+                            <Input
+                              type="number"
+                              className="h-8 p-1"
                               value={variant.stock}
                               min="0"
                               onChange={(e) => {

@@ -273,7 +273,7 @@ function ShoppingHome() {
               <img
                 src={section.data.image}
                 alt="Banner"
-                className="absolute inset-0 h-full w-full object-cover transition-transform duration-[2s] group-hover/hero:scale-110"
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-[2000ms] group-hover/hero:scale-110"
               />
               <div className="absolute inset-0 bg-black/35" />
 

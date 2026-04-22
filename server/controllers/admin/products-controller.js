@@ -135,7 +135,7 @@ const addProduct = async (req, res) => {
     }
 
     // Calculate totalStock from variants if variants exist
-    const calculatedTotalStock = generatedVariants.length > 0 
+    const calculatedTotalStock = generatedVariants.length > 0
       ? generatedVariants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0)
       : totalStock;
 
@@ -180,7 +180,7 @@ const fetchAllProducts = async (req, res) => {
   try {
     const listOfProducts = await Product.find({});
     const enrichedProducts = await enrichProductsWithAutomaticPromotions(listOfProducts);
-    
+
     res.status(200).json({
       success: true,
       data: enrichedProducts,
@@ -253,7 +253,7 @@ const editProduct = async (req, res) => {
       // Check if sizes or colors changed
       const sizesChanged = JSON.stringify(processedSizes.sort()) !== JSON.stringify((findProduct.sizes || []).sort());
       const colorsChanged = JSON.stringify(processedColors.sort()) !== JSON.stringify((findProduct.colors || []).sort());
-      
+
       if (sizesChanged || colorsChanged) {
         // Regenerate variants
         generatedVariants = [];
@@ -274,7 +274,7 @@ const editProduct = async (req, res) => {
     }
 
     // Calculate totalStock from variants if variants exist
-    const calculatedTotalStock = generatedVariants.length > 0 
+    const calculatedTotalStock = generatedVariants.length > 0
       ? generatedVariants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0)
       : totalStock || findProduct.totalStock;
 

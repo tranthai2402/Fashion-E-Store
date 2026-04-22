@@ -44,17 +44,27 @@ function ShoppingLookbookDetail() {
   return (
     <div className="min-h-[calc(100vh-56px)] bg-white">
       <div className="grid min-h-[calc(100vh-56px)] grid-cols-1 lg:grid-cols-2">
-        <div className="bg-white p-6 lg:p-12 border-r border-slate-50 flex items-center justify-center">
-          <div className="sticky top-24 w-full">
+        <div className="bg-white p-6 lg:p-12 border-r border-slate-50 flex items-start justify-center">
+          <div className="sticky top-28 w-full max-w-xl">
             <img
               src={lookbookDetails.imageUrl}
               alt="Lookbook visual"
-              className="w-full h-auto object-cover rounded-xl shadow-2xl"
+              className="w-full h-auto object-cover rounded-2xl shadow-2xl ring-1 ring-slate-100"
             />
+            <div className="mt-8 text-center hidden lg:block">
+               <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter leading-none mb-4">
+                  {lookbookDetails.title}
+               </h1>
+               <div className="flex items-center justify-center gap-4">
+                  <div className="h-px w-8 bg-slate-200"></div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Lookbook</p>
+                  <div className="h-px w-8 bg-slate-200"></div>
+               </div>
+            </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 lg:p-12 overflow-y-auto">
+        <div className="bg-white p-6 lg:p-12">
           <div className="mb-12">
              <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-1">Shop The Look</h2>
              <div className="h-1 w-12 bg-sky-500 rounded-full"></div>

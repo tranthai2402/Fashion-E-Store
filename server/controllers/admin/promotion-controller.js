@@ -40,13 +40,13 @@ const updatePromotion = async (req, res) => {
     }
 
     const updatedPromo = await Promotion.findByIdAndUpdate(id, req.body, { new: true });
-    
+
     if (!updatedPromo) {
       return res.status(404).json({ success: false, message: "Không tìm thấy promotion!" });
     }
 
     // Đồng bộ thuộc tính sang các Voucher liên quan (nếu có)
-    const updateVoucherData = { 
+    const updateVoucherData = {
       isPublic: updatedPromo.isPublic,
       usagePerUser: updatedPromo.usagePerUser,
       usageLimit: updatedPromo.usageLimit
@@ -98,10 +98,10 @@ const deletePromotion = async (req, res) => {
 const getAllPromotions = async (req, res) => {
   try {
     const promotions = await Promotion.find({}).sort({ createdAt: -1 }).lean();
-    
+
     // Fetch all vouchers and attach them to promotions
     const allVouchers = await Voucher.find({}).lean();
-    
+
     const enrichedPromotions = promotions.map(promo => {
       const voucher = allVouchers.find(v => v.promotionId.toString() === promo._id.toString());
       return {
@@ -124,7 +124,7 @@ const getPromotionDetails = async (req, res) => {
   try {
     const { id } = req.params;
     const promotion = await Promotion.findById(id);
-    
+
     if (!promotion) {
       return res.status(404).json({ success: false, message: "Không tìm thấy promotion!" });
     }

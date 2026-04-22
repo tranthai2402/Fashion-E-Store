@@ -29,8 +29,8 @@ function UserCartItemsContent({
 
   const pId = cartItem.productId && typeof cartItem.productId === 'object' ? cartItem.productId._id : cartItem.productId;
   const itemId = `${pId}-${cartItem.size || ''}-${cartItem.color || ''}`;
-  
-  const isSelected = isCheckoutPage 
+
+  const isSelected = isCheckoutPage
     ? (payingItems || []).includes(itemId)
     : (selectedItems || []).includes(itemId);
 
@@ -53,40 +53,40 @@ function UserCartItemsContent({
   function handleUpdateQuantity(getCartItem, typeOfAction) {
     if (typeOfAction == "plus") {
       let getCartItems = cartItems.items || [];
-        const indexOfCurrentCartItem = getCartItems.findIndex(
-          (item) =>
-            (item.productId?._id || item.productId) === pId &&
-            item.size === getCartItem?.size &&
-            item.color === getCartItem?.color
-        );
+      const indexOfCurrentCartItem = getCartItems.findIndex(
+        (item) =>
+          (item.productId?._id || item.productId) === pId &&
+          item.size === getCartItem?.size &&
+          item.color === getCartItem?.color
+      );
 
-        const getCurrentProductIndex = productList.findIndex(
-          (product) => product._id === pId
-        );
+      const getCurrentProductIndex = productList.findIndex(
+        (product) => product._id === pId
+      );
 
-        if (getCurrentProductIndex > -1) {
-          const product = productList[getCurrentProductIndex];
-          let maxStock = product.totalStock;
+      if (getCurrentProductIndex > -1) {
+        const product = productList[getCurrentProductIndex];
+        let maxStock = product.totalStock;
 
-          if (product.variants && product.variants.length > 0) {
-            const variant = product.variants.find(
-              (v) => v.size === getCartItem?.size && v.color === getCartItem?.color
-            );
-            if (variant) {
-              maxStock = variant.stock;
-            }
+        if (product.variants && product.variants.length > 0) {
+          const variant = product.variants.find(
+            (v) => v.size === getCartItem?.size && v.color === getCartItem?.color
+          );
+          if (variant) {
+            maxStock = variant.stock;
           }
+        }
 
-          if (indexOfCurrentCartItem > -1 && maxStock !== null) {
-            const getQuantity = getCartItems[indexOfCurrentCartItem].quantity;
-            if (getQuantity + 1 > maxStock) {
-              toast({
-                title: `Only ${maxStock} quantity available for this item`,
-                variant: "destructive",
-              });
-              return;
-            }
+        if (indexOfCurrentCartItem > -1 && maxStock !== null) {
+          const getQuantity = getCartItems[indexOfCurrentCartItem].quantity;
+          if (getQuantity + 1 > maxStock) {
+            toast({
+              title: `Only ${maxStock} quantity available for this item`,
+              variant: "destructive",
+            });
+            return;
           }
+        }
       }
     }
 
@@ -207,18 +207,16 @@ function UserCartItemsContent({
       <img
         src={cartItem?.image}
         alt={cartItem?.title}
-        className={`h-28 w-24 flex-shrink-0 object-cover bg-[#f5f5f0] rounded-sm ${
-          enableProductNavigation ? "cursor-pointer" : ""
-        }`}
+        className={`h-28 w-24 flex-shrink-0 object-cover bg-[#f5f5f0] rounded-sm ${enableProductNavigation ? "cursor-pointer" : ""
+          }`}
         onClick={handleNavigateToProduct}
       />
       <div className="flex-1 min-w-0">
         <button
           type="button"
           onClick={handleNavigateToProduct}
-          className={`w-full border-none bg-transparent p-0 text-left ${
-            enableProductNavigation ? "cursor-pointer" : ""
-          }`}
+          className={`w-full border-none bg-transparent p-0 text-left ${enableProductNavigation ? "cursor-pointer" : ""
+            }`}
         >
           <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-900 leading-relaxed line-clamp-2">
             {cartItem?.title}

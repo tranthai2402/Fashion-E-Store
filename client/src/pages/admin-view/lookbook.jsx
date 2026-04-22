@@ -11,7 +11,7 @@ import {
   editLookbook,
 } from "@/store/admin/lookbook-slice";
 import { fetchAllProducts } from "@/store/admin/products-slice";
-import { Search, Trash2, ChevronDown, GripHorizontal, Edit, RotateCcw } from "lucide-react";
+import { Search, Trash2, ChevronDown, GripHorizontal, Edit, RotateCcw, Plus } from "lucide-react";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {

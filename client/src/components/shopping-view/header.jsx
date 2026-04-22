@@ -86,11 +86,11 @@ function MenuItems({ isOverlay = false, compact = false }) {
     sessionStorage.removeItem("filters");
     const currentFilter =
       getCurrentMenuItem.id !== "home" &&
-      getCurrentMenuItem.id !== "products" &&
-      getCurrentMenuItem.id !== "lookbook" &&
-      getCurrentMenuItem.id !== "search" &&
-      getCurrentMenuItem.id !== "about" &&
-      getCurrentMenuItem.id !== "services"
+        getCurrentMenuItem.id !== "products" &&
+        getCurrentMenuItem.id !== "lookbook" &&
+        getCurrentMenuItem.id !== "search" &&
+        getCurrentMenuItem.id !== "about" &&
+        getCurrentMenuItem.id !== "services"
         ? { category: [getCurrentMenuItem.id] }
         : null;
 
@@ -99,34 +99,29 @@ function MenuItems({ isOverlay = false, compact = false }) {
 
     location.pathname.includes("listing") && currentFilter !== null
       ? setSearchParams(
-          new URLSearchParams(`?category=${getCurrentMenuItem.id}`)
-        )
+        new URLSearchParams(`?category=${getCurrentMenuItem.id}`)
+      )
       : navigate(getCurrentMenuItem.path);
   }
 
   return (
     <nav
-      className={`relative flex items-center ${
-        compact ? "gap-[3px]" : "gap-[6px]"
-      }`}
+      className={`relative flex items-center ${compact ? "gap-[3px]" : "gap-[6px]"
+        }`}
     >
       <div
-        className={`absolute top-0 left-0 flex items-center rounded-[6px] transition-all duration-300 ease-out ${
-          compact ? "h-[26px]" : "h-[30px]"
-        } ${
-          isOverlay ? "bg-white/15" : "bg-[#0e0f1114]"
-        }`}
+        className={`absolute top-0 left-0 flex items-center rounded-[6px] transition-all duration-300 ease-out ${compact ? "h-[26px]" : "h-[30px]"
+          } ${isOverlay ? "bg-white/15" : "bg-[#0e0f1114]"
+          }`}
         style={{
           ...hoverStyle,
           opacity: hoveredIndex !== null ? 1 : 0,
         }}
       />
       <div
-        className={`absolute h-[2px] transition-all duration-300 ease-out ${
-          compact ? "bottom-[-4px]" : "bottom-[-6px]"
-        } ${
-          isOverlay ? "bg-white" : "bg-black"
-        }`}
+        className={`absolute h-[2px] transition-all duration-300 ease-out ${compact ? "bottom-[-4px]" : "bottom-[-6px]"
+          } ${isOverlay ? "bg-white" : "bg-black"
+          }`}
         style={activeStyle}
       />
 
@@ -139,19 +134,17 @@ function MenuItems({ isOverlay = false, compact = false }) {
           onClick={() => handleNavigate(menuItem)}
           onMouseEnter={() => setHoveredIndex(index)}
           onMouseLeave={() => setHoveredIndex(null)}
-          className={`z-10 rounded-md bg-transparent border-none cursor-pointer font-medium uppercase transition-colors duration-300 outline-none ${
-            compact
-              ? "h-[26px] px-2.5 py-1 text-[9px] tracking-[0.16em]"
-              : "h-[30px] px-3 py-2 text-[11px] tracking-[0.2em]"
-          } ${
-            activeId === menuItem.id
+          className={`z-10 rounded-md bg-transparent border-none cursor-pointer font-medium uppercase transition-colors duration-300 outline-none ${compact
+            ? "h-[26px] px-2.5 py-1 text-[9px] tracking-[0.16em]"
+            : "h-[30px] px-3 py-2 text-[11px] tracking-[0.2em]"
+            } ${activeId === menuItem.id
               ? isOverlay
                 ? "text-white"
                 : "text-black"
               : isOverlay
-              ? "text-white/65"
-              : "text-gray-400"
-          }`}
+                ? "text-white/65"
+                : "text-gray-400"
+            }`}
         >
           {menuItem.label}
         </button>
@@ -214,9 +207,8 @@ function HeaderRightContent({ isOverlay = false }) {
           <ShoppingCart className="w-[18px] h-[18px]" strokeWidth={1.5} />
           {cartItems?.items?.length > 0 && (
             <span
-              className={`absolute -top-2 -right-2 text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-medium ${
-                isOverlay ? "bg-white text-black" : "bg-black text-white"
-              }`}
+              className={`absolute -top-2 -right-2 text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-medium ${isOverlay ? "bg-white text-black" : "bg-black text-white"
+                }`}
             >
               {cartItems.items.length}
             </span>
@@ -236,14 +228,12 @@ function HeaderRightContent({ isOverlay = false }) {
         <DropdownMenuTrigger asChild>
           <button className="bg-transparent border-none cursor-pointer">
             <Avatar
-              className={`w-7 h-7 ${
-                isOverlay ? "bg-white/20 border border-white/40" : "bg-black"
-              }`}
+              className={`w-7 h-7 ${isOverlay ? "bg-white/20 border border-white/40" : "bg-black"
+                }`}
             >
               <AvatarFallback
-                className={`text-xs font-semibold ${
-                  isOverlay ? "bg-white/20 text-white" : "bg-black text-white"
-                }`}
+                className={`text-xs font-semibold ${isOverlay ? "bg-white/20 text-white" : "bg-black text-white"
+                  }`}
               >
                 {user?.userName?.[0]?.toUpperCase()}
               </AvatarFallback>
@@ -287,11 +277,10 @@ function ShoppingHeader() {
 
   return (
     <header
-      className={`fixed top-0 left-0 w-full z-40 transition-colors duration-500 ${
-        isTransparentBg
-          ? "bg-transparent border-transparent"
-          : "bg-white border-b border-gray-200"
-      }`}
+      className={`fixed top-0 left-0 w-full z-40 transition-colors duration-500 ${isTransparentBg
+        ? "bg-transparent border-transparent"
+        : "bg-white border-b border-gray-200"
+        }`}
     >
       <div className="flex h-14 items-center justify-between px-6 md:px-10 w-full">
         <Link
@@ -300,9 +289,8 @@ function ShoppingHeader() {
           style={{ fontFamily: "'Playfair Display', serif" }}
         >
           <span
-            className={`text-xl font-bold tracking-[0.05em] uppercase transition-colors duration-500 ${
-              isOverlay ? "text-white" : "text-black"
-            }`}
+            className={`text-xl font-bold tracking-[0.05em] uppercase transition-colors duration-500 ${isOverlay ? "text-white" : "text-black"
+              }`}
           >
             Saint Laurent
           </span>

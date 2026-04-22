@@ -72,20 +72,20 @@ function AdminOrdersView() {
   const filteredAndSortedOrderList =
     orderList && orderList.length > 0
       ? [...orderList]
-          .filter((orderItem) => {
-            if (searchTerm === "") return true;
-            return (
-              orderItem?.userName
-                ?.toLowerCase()
-                .includes(searchTerm.toLowerCase()) ||
-              orderItem?.email?.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-          })
-          .sort((a, b) => {
-            const dateA = new Date(a.orderDate);
-            const dateB = new Date(b.orderDate);
-            return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
-          })
+        .filter((orderItem) => {
+          if (searchTerm === "") return true;
+          return (
+            orderItem?.userName
+              ?.toLowerCase()
+              .includes(searchTerm.toLowerCase()) ||
+            orderItem?.email?.toLowerCase().includes(searchTerm.toLowerCase())
+          );
+        })
+        .sort((a, b) => {
+          const dateA = new Date(a.orderDate);
+          const dateB = new Date(b.orderDate);
+          return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
+        })
       : [];
 
   useEffect(() => {
@@ -153,47 +153,46 @@ function AdminOrdersView() {
             <TableBody>
               {paginatedOrders && paginatedOrders.length > 0
                 ? paginatedOrders.map((orderItem) => (
-                    <TableRow key={orderItem?._id}>
-                      <TableCell>{orderItem?.orderCode || "-"}</TableCell>
-                      <TableCell>{orderItem?.userName}</TableCell>
-                      <TableCell>{orderItem?.email}</TableCell>
-                      <TableCell>{orderItem?.orderDate.split("T")[0]}</TableCell>
-                      <TableCell>
-                        <Badge
-                          className={`py-1 px-3 ${
-                            orderItem?.orderStatus === "confirmed" ? "bg-blue-500 hover:bg-blue-600" :
+                  <TableRow key={orderItem?._id}>
+                    <TableCell>{orderItem?.orderCode || "-"}</TableCell>
+                    <TableCell>{orderItem?.userName}</TableCell>
+                    <TableCell>{orderItem?.email}</TableCell>
+                    <TableCell>{orderItem?.orderDate.split("T")[0]}</TableCell>
+                    <TableCell>
+                      <Badge
+                        className={`py-1 px-3 ${orderItem?.orderStatus === "confirmed" ? "bg-blue-500 hover:bg-blue-600" :
                             orderItem?.orderStatus === "inProcess" ? "bg-cyan-500 hover:bg-cyan-600" :
-                            orderItem?.orderStatus === "inShipping" ? "bg-indigo-500 hover:bg-indigo-600" :
-                            orderItem?.orderStatus === "delivered" ? "bg-green-500 hover:bg-green-600" :
-                            orderItem?.orderStatus === "rejected" ? "bg-red-600 hover:bg-red-700" :
-                            orderItem?.orderStatus === "pending" ? "bg-yellow-500 hover:bg-yellow-600" :
-                            "bg-black"
+                              orderItem?.orderStatus === "inShipping" ? "bg-indigo-500 hover:bg-indigo-600" :
+                                orderItem?.orderStatus === "delivered" ? "bg-green-500 hover:bg-green-600" :
+                                  orderItem?.orderStatus === "rejected" ? "bg-red-600 hover:bg-red-700" :
+                                    orderItem?.orderStatus === "pending" ? "bg-yellow-500 hover:bg-yellow-600" :
+                                      "bg-black"
                           }`}
+                      >
+                        {orderItem?.orderStatus}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>${orderItem?.totalAmount}</TableCell>
+                    <TableCell>
+                      <Dialog
+                        open={openDetailsDialog}
+                        onOpenChange={() => {
+                          setOpenDetailsDialog(false);
+                          dispatch(resetOrderDetails());
+                        }}
+                      >
+                        <Button
+                          onClick={() =>
+                            handleFetchOrderDetails(orderItem?._id)
+                          }
                         >
-                          {orderItem?.orderStatus}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>${orderItem?.totalAmount}</TableCell>
-                      <TableCell>
-                        <Dialog
-                          open={openDetailsDialog}
-                          onOpenChange={() => {
-                            setOpenDetailsDialog(false);
-                            dispatch(resetOrderDetails());
-                          }}
-                        >
-                          <Button
-                            onClick={() =>
-                              handleFetchOrderDetails(orderItem?._id)
-                            }
-                          >
-                            View Details
-                          </Button>
-                          <AdminOrderDetailsView orderDetails={orderDetails} />
-                        </Dialog>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                          View Details
+                        </Button>
+                        <AdminOrderDetailsView orderDetails={orderDetails} />
+                      </Dialog>
+                    </TableCell>
+                  </TableRow>
+                ))
                 : null}
             </TableBody>
           </Table>
