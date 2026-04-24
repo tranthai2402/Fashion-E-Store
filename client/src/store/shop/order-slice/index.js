@@ -70,6 +70,17 @@ export const checkProductPurchase = createAsyncThunk(
   }
 );
 
+export const cancelOrder = createAsyncThunk(
+  "/order/cancelOrder",
+  async (orderId) => {
+    const response = await axios.put(
+      `http://localhost:5000/api/shop/order/cancel/${orderId}`
+    );
+
+    return response.data;
+  }
+);
+
 const shoppingOrderSlice = createSlice({
   name: "shoppingOrderSlice",
   initialState,

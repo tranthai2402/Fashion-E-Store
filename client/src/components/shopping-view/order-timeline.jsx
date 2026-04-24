@@ -11,7 +11,7 @@ const statuses = [
 ];
 
 function OrderTimeline({ currentStatus }) {
-  const isRejected = currentStatus === "rejected";
+  const isRejected = currentStatus === "rejected" || currentStatus === "cancelled";
   
   if (isRejected) {
     return (
@@ -23,7 +23,9 @@ function OrderTimeline({ currentStatus }) {
         <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-3">
           <XCircle className="w-6 h-6 text-red-500" />
         </div>
-        <p className="text-red-700 font-bold uppercase tracking-widest text-[10px]">Order Cancelled / Rejected</p>
+        <p className="text-red-700 font-bold uppercase tracking-widest text-[10px]">
+          {currentStatus === "cancelled" ? "Đơn hàng đã bị hủy" : "Order Cancelled / Rejected"}
+        </p>
       </motion.div>
     );
   }

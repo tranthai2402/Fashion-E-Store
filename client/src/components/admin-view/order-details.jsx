@@ -82,39 +82,33 @@ function AdminOrderDetailsView({ orderDetails }) {
             <Label className="uppercase text-sm font-bold">{orderDetails?.paymentMethod}</Label>
           </div>
           
-          {orderDetails?.paymentMethod === "qr_code" && (
-            <div className="flex mt-2 items-center justify-between p-2 bg-orange-50 border border-orange-100 rounded">
-                <p className="font-bold text-orange-800">Số tiền QR cần nhận (Total + 2000)</p>
-                <Label className="text-orange-900 font-black text-lg">
-                    ${(orderDetails?.totalAmount + 2000).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                </Label>
+
+          {orderDetails?.paymentMethod === "cod" && (
+            <div className="flex mt-2 items-center justify-between">
+              <p className="font-medium">Payment Status</p>
+              <div className="flex items-center gap-2">
+                  <Badge
+                  className={`py-1 px-3 ${
+                      orderDetails?.paymentStatus === "paid" ? "bg-green-500 hover:bg-green-600" :
+                      orderDetails?.paymentStatus === "failed" ? "bg-red-600 hover:bg-red-700" :
+                      "bg-yellow-500 hover:bg-yellow-600"
+                  }`}
+                  >
+                  {orderDetails?.paymentStatus || "pending"}
+                  </Badge>
+                  {orderDetails?.paymentStatus !== "paid" && (
+                      <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="h-7 text-[10px] border-green-600 text-green-600 hover:bg-green-50"
+                          onClick={handleConfirmPayment}
+                      >
+                          Xác nhận đã nhận tiền
+                      </Button>
+                  )}
+              </div>
             </div>
           )}
-
-          <div className="flex mt-2 items-center justify-between">
-            <p className="font-medium">Payment Status</p>
-            <div className="flex items-center gap-2">
-                <Badge
-                className={`py-1 px-3 ${
-                    orderDetails?.paymentStatus === "paid" ? "bg-green-500 hover:bg-green-600" :
-                    orderDetails?.paymentStatus === "failed" ? "bg-red-600 hover:bg-red-700" :
-                    "bg-yellow-500 hover:bg-yellow-600"
-                }`}
-                >
-                {orderDetails?.paymentStatus || "pending"}
-                </Badge>
-                {orderDetails?.paymentStatus !== "paid" && (
-                    <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="h-7 text-[10px] border-green-600 text-green-600 hover:bg-green-50"
-                        onClick={handleConfirmPayment}
-                    >
-                        Xác nhận đã nhận tiền
-                    </Button>
-                )}
-            </div>
-          </div>
           <div className="flex mt-2 items-center justify-between">
             <p className="font-medium">Order Status</p>
             <Label>
@@ -124,7 +118,7 @@ function AdminOrderDetailsView({ orderDetails }) {
                   orderDetails?.orderStatus === "inProcess" ? "bg-cyan-500 hover:bg-cyan-600" :
                   orderDetails?.orderStatus === "inShipping" ? "bg-indigo-500 hover:bg-indigo-600" :
                   orderDetails?.orderStatus === "delivered" ? "bg-green-500 hover:bg-green-600" :
-                  orderDetails?.orderStatus === "rejected" ? "bg-red-600 hover:bg-red-700" :
+                  orderDetails?.orderStatus === "rejected" || orderDetails?.orderStatus === "cancelled" ? "bg-red-600 hover:bg-red-700" :
                   orderDetails?.orderStatus === "pending" ? "bg-yellow-500 hover:bg-yellow-600" :
                   "bg-black"
                 }`}
@@ -185,6 +179,7 @@ function AdminOrderDetailsView({ orderDetails }) {
                   { id: "inShipping", label: "In Shipping" },
                   { id: "delivered", label: "Delivered" },
                   { id: "rejected", label: "Rejected" },
+                  { id: "cancelled", label: "Cancelled" },
                 ],
               },
             ]}

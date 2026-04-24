@@ -262,19 +262,23 @@ const createOrder = async (req, res) => {
           orderId: newlyCreatedOrder._id,
         });
       } else {
-        // For COD or QR Code, clear cart and return success
-        const cart = await Cart.findById(cartId);
+        // For COD or QR Code, clear specific items from cart
+        const cart = await Cart.findOne({ userId });
         if (cart) {
-          cartItems.forEach((orderedItem) => {
-            cart.items = cart.items.filter(
-              (cartItem) =>
-                !(cartItem.productId.toString() === orderedItem.productId.toString() &&
-                  (cartItem.size || '') === (orderedItem.size || '') &&
-                  (cartItem.color || '') === (orderedItem.color || ''))
-            );
+          cart.items = cart.items.filter((cartItem) => {
+            return !cartItems.some((orderedItem) => {
+              const pId1 = cartItem.productId.toString();
+              const pId2 = (orderedItem.productId._id || orderedItem.productId).toString();
+              return (
+                pId1 === pId2 &&
+                (cartItem.size || "") === (orderedItem.size || "") &&
+                (cartItem.color || "") === (orderedItem.color || "")
+              );
+            });
           });
+
           if (cart.items.length === 0) {
-            await Cart.findByIdAndDelete(cartId);
+            await Cart.findByIdAndDelete(cart._id);
           } else {
             await cart.save();
           }
@@ -357,18 +361,22 @@ const capturePayment = async (req, res) => {
       }
     }
 
-    const cart = await Cart.findById(order.cartId);
+    const cart = await Cart.findOne({ userId: order.userId });
     if (cart) {
-      order.cartItems.forEach((orderedItem) => {
-        cart.items = cart.items.filter(
-          (cartItem) =>
-            !(cartItem.productId.toString() === orderedItem.productId.toString() &&
-              (cartItem.size || '') === (orderedItem.size || '') &&
-              (cartItem.color || '') === (orderedItem.color || ''))
-        );
+      cart.items = cart.items.filter((cartItem) => {
+        return !order.cartItems.some((orderedItem) => {
+          const pId1 = cartItem.productId.toString();
+          const pId2 = (orderedItem.productId._id || orderedItem.productId).toString();
+          return (
+            pId1 === pId2 &&
+            (cartItem.size || "") === (orderedItem.size || "") &&
+            (cartItem.color || "") === (orderedItem.color || "")
+          );
+        });
       });
+
       if (cart.items.length === 0) {
-        await Cart.findByIdAndDelete(order.cartId);
+        await Cart.findByIdAndDelete(cart._id);
       } else {
         await cart.save();
       }
@@ -489,11 +497,83 @@ const handlePaymentWebhook = async (req, res) => {
   }
 };
 
+const cancelOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const order = await Order.findById(id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy đơn hàng!",
+      });
+    }
+
+    // Only allow cancellation if order is NOT yet in shipping or delivered
+    const cancellableStatuses = ["pending", "confirmed", "inProcess"];
+    if (!cancellableStatuses.includes(order.orderStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: "Không thể hủy đơn hàng khi đã đang giao hàng hoặc đã giao!",
+      });
+    }
+
+    // Release reserved stock back to inventory
+    if (order.stockReserved && order.cartItems && order.cartItems.length > 0) {
+      await releaseReservedStock(order.cartItems);
+    }
+
+    // Revert totalSold for each product
+    for (const item of order.cartItems) {
+      // Only revert if the order was confirmed (totalSold was incremented)
+      if (order.orderStatus !== "pending") {
+        await Product.findByIdAndUpdate(item.productId, {
+          $inc: { totalSold: -item.quantity },
+        });
+      }
+    }
+
+    // Revert voucher/promotion usage counts
+    if (order.appliedPromotions && order.appliedPromotions.length > 0) {
+      for (const promo of order.appliedPromotions) {
+        if (promo.promotionId) {
+          await Promotion.findByIdAndUpdate(promo.promotionId, { $inc: { usedCount: -1 } });
+        }
+        if (promo.voucherCode) {
+          await Voucher.findOneAndUpdate(
+            { code: promo.voucherCode },
+            { $inc: { usedCount: -1 } }
+          );
+        }
+      }
+    }
+
+    order.orderStatus = "cancelled";
+    order.stockReserved = false;
+    order.orderUpdateDate = new Date();
+    await order.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Đơn hàng đã được hủy thành công!",
+    });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi khi hủy đơn hàng!",
+    });
+  }
+};
+
 module.exports = {
   createOrder,
   capturePayment,
   getAllOrdersByUser,
   getOrderDetails,
   checkProductPurchase,
-  handlePaymentWebhook
+  handlePaymentWebhook,
+  cancelOrder,
 };
+

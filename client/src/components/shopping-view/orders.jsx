@@ -84,7 +84,7 @@ function ShoppingOrders() {
                           orderItem?.orderStatus === "inProcess" ? "bg-cyan-600 hover:bg-cyan-700" :
                           orderItem?.orderStatus === "inShipping" ? "bg-indigo-600 hover:bg-indigo-700" :
                           orderItem?.orderStatus === "delivered" ? "bg-green-600 hover:bg-green-700" :
-                          orderItem?.orderStatus === "rejected" ? "bg-red-600 hover:bg-red-700" :
+                          orderItem?.orderStatus === "rejected" || orderItem?.orderStatus === "cancelled" ? "bg-red-600 hover:bg-red-700" :
                           orderItem?.orderStatus === "pending" ? "bg-yellow-600 hover:bg-yellow-700" :
                           "bg-gray-900"
                         }`}

@@ -173,6 +173,10 @@ function ShoppingCheckout() {
             toast({
                 title: data.payload.message || "Order placed successfully!",
             });
+            if (user?.id) {
+                dispatch(fetchCartItems({ userId: user?.id }));
+                dispatch(clearCheckoutItems());
+            }
             navigate("/shop/account");
         }
       } else {

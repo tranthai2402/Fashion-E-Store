@@ -20,6 +20,7 @@ import {
 import { Badge } from "../ui/badge";
 import { ArrowUpDown, Search } from "lucide-react";
 import { Input } from "../ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
 function getPaginationItems(currentPage, totalPages) {
   if (totalPages <= 6) {
@@ -56,6 +57,7 @@ function AdminOrdersView() {
   const [openDetailsDialog, setOpenDetailsDialog] = useState(false);
   const [sortOrder, setSortOrder] = useState("desc"); // 'desc' for newest first, 'asc' for oldest first
   const [searchTerm, setSearchTerm] = useState("");
+  const [orderStatusFilter, setOrderStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 4;
   const { orderList, orderDetails } = useSelector((state) => state.adminOrder);
@@ -81,6 +83,10 @@ function AdminOrdersView() {
             orderItem?.email?.toLowerCase().includes(searchTerm.toLowerCase())
           );
         })
+        .filter((orderItem) => {
+          if (orderStatusFilter === "all") return true;
+          return orderItem?.orderStatus === orderStatusFilter;
+        })
         .sort((a, b) => {
           const dateA = new Date(a.orderDate);
           const dateB = new Date(b.orderDate);
@@ -90,7 +96,7 @@ function AdminOrdersView() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, sortOrder, orderList]);
+  }, [searchTerm, sortOrder, orderStatusFilter, orderList]);
 
   const totalPages = Math.max(
     1,
@@ -116,14 +122,33 @@ function AdminOrdersView() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7">
         <CardTitle className="text-xl font-bold">All Orders</CardTitle>
-        <div className="relative w-[300px]">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search customer or email..."
-            className="pl-8 bg-background"
-          />
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="w-[180px]">
+            <Select value={orderStatusFilter} onValueChange={setOrderStatusFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Order Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Order Statuses</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="confirmed">Confirmed</SelectItem>
+                <SelectItem value="inProcess">Processing</SelectItem>
+                <SelectItem value="inShipping">In Shipping</SelectItem>
+                <SelectItem value="delivered">Delivered</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="relative w-[300px]">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search customer or email..."
+              className="pl-8 bg-background"
+            />
+          </div>
         </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-4 min-h-[520px]">
@@ -164,7 +189,7 @@ function AdminOrdersView() {
                             orderItem?.orderStatus === "inProcess" ? "bg-cyan-500 hover:bg-cyan-600" :
                               orderItem?.orderStatus === "inShipping" ? "bg-indigo-500 hover:bg-indigo-600" :
                                 orderItem?.orderStatus === "delivered" ? "bg-green-500 hover:bg-green-600" :
-                                  orderItem?.orderStatus === "rejected" ? "bg-red-600 hover:bg-red-700" :
+                                  orderItem?.orderStatus === "rejected" || orderItem?.orderStatus === "cancelled" ? "bg-red-600 hover:bg-red-700" :
                                     orderItem?.orderStatus === "pending" ? "bg-yellow-500 hover:bg-yellow-600" :
                                       "bg-black"
                           }`}
