@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
+import { getApiUrl } from "@/config/api";
 
 const initialState = {
   isLoading: false,
@@ -13,7 +14,7 @@ const initialState = {
 export const fetchPublicVideoSettings = createAsyncThunk(
   "/common/videos/fetchPublicVideoSettings",
   async () => {
-    const response = await axios.get("http://localhost:5000/api/common/videos/get");
+    const response = await axios.get(getApiUrl("/api/common/videos/get"));
     return response.data;
   }
 );

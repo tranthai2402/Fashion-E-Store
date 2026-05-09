@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
+import { getApiUrl } from "@/config/api";
 
 const initialState = {
   isLoading: false,
@@ -14,7 +15,7 @@ export const getRevenueAnalytics = createAsyncThunk(
   "/admin/getRevenueAnalytics",
   async (filter) => {
     const response = await axios.get(
-      `http://localhost:5000/api/admin/analytics/revenue?filter=${filter}`
+      getApiUrl(`/api/admin/analytics/revenue?filter=${filter}`)
     );
 
     return response.data;
@@ -25,7 +26,9 @@ export const getComparisonAnalytics = createAsyncThunk(
   "/admin/getComparisonAnalytics",
   async ({ period1, period2, type }) => {
     const response = await axios.get(
-      `http://localhost:5000/api/admin/analytics/comparison?period1=${period1}&period2=${period2}&type=${type}`
+      getApiUrl(
+        `/api/admin/analytics/comparison?period1=${period1}&period2=${period2}&type=${type}`
+      )
     );
 
     return response.data;

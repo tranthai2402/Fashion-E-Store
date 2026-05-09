@@ -120,9 +120,8 @@ function ShoppingAbout() {
               <p className="text-[11px] uppercase tracking-[0.2em] text-gray-500 leading-relaxed">
               The brand story
               <br />
-              (c) Ecommerce Brand
               <br />
-              Fashion House Canada
+              Fashion House France
             </p>
           </div>
         </div>

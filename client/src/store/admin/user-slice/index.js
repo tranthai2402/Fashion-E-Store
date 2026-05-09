@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
+import { getApiUrl } from "@/config/api";
 
 const initialState = {
   isLoading: false,
@@ -10,7 +11,7 @@ export const fetchAllUsers = createAsyncThunk(
   "/admin/fetchAllUsers",
   async () => {
     const response = await axios.get(
-      `http://localhost:5000/api/admin/users/get`
+      getApiUrl("/api/admin/users/get")
     );
 
     return response.data;
@@ -21,7 +22,7 @@ export const updateUserRole = createAsyncThunk(
   "/admin/updateUserRole",
   async ({ userId, role }) => {
     const response = await axios.put(
-      `http://localhost:5000/api/admin/users/update-role`,
+      getApiUrl("/api/admin/users/update-role"),
       { userId, role }
     );
 

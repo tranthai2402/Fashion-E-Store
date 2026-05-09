@@ -29,7 +29,7 @@ const HERO_VIDEO_SOURCES = [duskVideo, carWindowVideo, telephoneVideo];
 const HERO_VIDEO_PLAYBACK_RATE = 0.8;
 const HERO_VIDEO_SEGMENT_MS = 5000;
 
-const SCROLL_LOCK_MS = 950;
+const SCROLL_LOCK_MS = 500;
 const SECTION_ANIMATION_CLASS =
   "transition-transform duration-700 ease-in-out will-change-transform";
 

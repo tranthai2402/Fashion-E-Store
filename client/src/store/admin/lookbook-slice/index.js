@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
+import { getApiUrl } from "@/config/api";
 
 const initialState = {
   isLoading: false,
@@ -10,7 +11,7 @@ export const fetchAllLookbooksAdmin = createAsyncThunk(
   "/admin/lookbook/fetchAll",
   async () => {
     const response = await axios.get(
-      "http://localhost:5000/api/admin/lookbook/get",
+      getApiUrl("/api/admin/lookbook/get"),
       {
         withCredentials: true,
       }
@@ -23,7 +24,7 @@ export const addNewLookbook = createAsyncThunk(
   "/admin/lookbook/add",
   async (payload) => {
     const response = await axios.post(
-      "http://localhost:5000/api/admin/lookbook/add",
+      getApiUrl("/api/admin/lookbook/add"),
       payload,
       {
         withCredentials: true,
@@ -37,7 +38,7 @@ export const deleteLookbook = createAsyncThunk(
   "/admin/lookbook/delete",
   async (id) => {
     const response = await axios.delete(
-      `http://localhost:5000/api/admin/lookbook/delete/${id}`,
+      getApiUrl(`/api/admin/lookbook/delete/${id}`),
       {
         withCredentials: true,
       }

@@ -2,6 +2,7 @@ const Order = require("../../models/Order");
 const Cart = require("../../models/Cart");
 const Product = require("../../models/Product");
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+const clientOrigin = process.env.CLIENT_ORIGIN || "http://localhost:5173";
 const stripe = stripeSecretKey ? require("stripe")(stripeSecretKey) : null;
 
 const ORDER_CODE_PREFIX = "ORD";
@@ -233,8 +234,8 @@ const createOrder = async (req, res) => {
         payment_method_types: ["card"],
         line_items: line_items,
         mode: "payment",
-        success_url: `http://localhost:5173/shop/stripe-return?orderId=${newlyCreatedOrder._id}&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: "http://localhost:5173/shop/stripe-cancel",
+        success_url: `${clientOrigin}/shop/stripe-return?orderId=${newlyCreatedOrder._id}&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${clientOrigin}/shop/stripe-cancel`,
       });
     } catch (processingError) {
       if (reservedItems.length > 0) {

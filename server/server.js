@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
+require("dotenv").config();
 const authRouter = require("./routes/auth/auth-routes");
 const adminProductsRouter = require("./routes/admin/products-routes");
 const adminOrderRouter = require("./routes/admin/order-routes");
@@ -24,8 +25,15 @@ const shopLookbookRouter = require("./routes/shop/lookbook-routes");
 //create a database connection -> u can also
 //create a separate file for this and then import/use that file here
 
+const MONGODB_URI = process.env.MONGODB_URI;
+const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || "http://localhost:5173";
+
+if (!MONGODB_URI) {
+  throw new Error("Missing MONGODB_URI in environment variables");
+}
+
 mongoose
-  .connect("mongodb+srv://phamminhchuong2323_db_user:12345678%40@cluster0.lgzrgqv.mongodb.net/?appName=Cluster0")
+  .connect(MONGODB_URI)
   .then(() => console.log("MongoDB connected"))
   .catch((error) => console.log(error));
 
@@ -34,7 +42,7 @@ const PORT = process.env.PORT || 5000;
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: CLIENT_ORIGIN,
     methods: ["GET", "POST", "DELETE", "PUT"],
     allowedHeaders: [
       "Content-Type",

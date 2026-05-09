@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
+import { getApiUrl } from "@/config/api";
 
 const initialState = {
   isLoading: false,
@@ -14,7 +15,7 @@ const initialState = {
 export const fetchAdminVideoSettings = createAsyncThunk(
   "/admin/videos/fetchAdminVideoSettings",
   async () => {
-    const response = await axios.get("http://localhost:5000/api/admin/videos/get", {
+    const response = await axios.get(getApiUrl("/api/admin/videos/get"), {
       withCredentials: true,
     });
     return response.data;
@@ -25,7 +26,7 @@ export const updateAdminHomeVideos = createAsyncThunk(
   "/admin/videos/updateAdminHomeVideos",
   async (videos) => {
     const response = await axios.put(
-      "http://localhost:5000/api/admin/videos/home",
+      getApiUrl("/api/admin/videos/home"),
       { videos },
       { withCredentials: true }
     );
@@ -37,7 +38,7 @@ export const updateAdminAboutVideo = createAsyncThunk(
   "/admin/videos/updateAdminAboutVideo",
   async (payload) => {
     const response = await axios.put(
-      "http://localhost:5000/api/admin/videos/about",
+      getApiUrl("/api/admin/videos/about"),
       payload,
       { withCredentials: true }
     );

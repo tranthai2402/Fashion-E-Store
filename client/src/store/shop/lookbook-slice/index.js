@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
+import { getApiUrl } from "@/config/api";
 
 const initialState = {
   isLoading: false,
@@ -10,7 +11,7 @@ const initialState = {
 export const fetchLookbookList = createAsyncThunk(
   "/shop/lookbook/fetchList",
   async () => {
-    const response = await axios.get("http://localhost:5000/api/shop/lookbook/get");
+    const response = await axios.get(getApiUrl("/api/shop/lookbook/get"));
     return response.data;
   }
 );
@@ -19,7 +20,7 @@ export const fetchLookbookDetails = createAsyncThunk(
   "/shop/lookbook/fetchDetails",
   async (id) => {
     const response = await axios.get(
-      `http://localhost:5000/api/shop/lookbook/get/${id}`
+      getApiUrl(`/api/shop/lookbook/get/${id}`)
     );
     return response.data;
   }

@@ -11,6 +11,7 @@ import {
   updateAdminAboutVideo,
   updateAdminHomeVideos,
 } from "@/store/admin/video-slice";
+import { getApiUrl } from "@/config/api";
 
 function AdminVideos() {
   const dispatch = useDispatch();
@@ -74,7 +75,7 @@ function AdminVideos() {
     const formData = new FormData();
     formData.append("my_file", file);
     const response = await axios.post(
-      "http://localhost:5000/api/admin/products/upload-image",
+      getApiUrl("/api/admin/products/upload-image"),
       formData,
       { withCredentials: true }
     );
