@@ -13,6 +13,10 @@ const LookbookSchema = new mongoose.Schema(
         ref: "Product",
       },
     ],
+    order: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true }
 );

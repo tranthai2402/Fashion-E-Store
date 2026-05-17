@@ -14,40 +14,43 @@ function ShoppingLookbook() {
   }, [dispatch]);
 
   return (
-    <div className="min-h-[calc(100vh-56px)] bg-white px-6 py-10 md:px-10">
+    <div className="min-h-[calc(100vh-56px)] bg-white px-6 py-16 md:px-10 lg:px-20">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-10 text-center">
-          <p className="text-[10px] uppercase tracking-[0.34em] text-gray-500">
-            Lookbook
-          </p>
+        <div className="mb-20 text-center">
+          <h1 className="text-[11px] font-bold uppercase tracking-[0.4em] text-gray-900 mb-4">
+            LOOKBOOKS
+          </h1>
+          <div className="h-px w-16 bg-gray-200 mx-auto" />
         </div>
 
-        <div className="columns-1 gap-8 space-y-8 sm:columns-2 lg:columns-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-x-12 gap-y-20">
           {(lookbookList || []).map((look) => (
-            <button
+            <div
               key={look._id}
               onClick={() => navigate(`/shop/lookbook/${look._id}`)}
-              className="group relative block w-full break-inside-avoid overflow-hidden bg-transparent border-none p-0 cursor-pointer"
+              className="group cursor-pointer"
             >
-              <img
-                src={look.imageUrl}
-                alt="Lookbook"
-                className="w-full h-auto object-cover"
-              />
-              <div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/10" />
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-black">
-                  <Plus className="h-4 w-4" strokeWidth={1.5} />
+              <div className="relative aspect-[4/5] overflow-hidden bg-gray-50 rounded-sm">
+                <img
+                  src={look.imageUrl}
+                  alt={look.title || "Lookbook"}
+                  className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 ease-in-out group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="absolute inset-0 flex items-center justify-center translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
+                  <div className="px-6 py-3 bg-white/90 backdrop-blur-sm text-[10px] font-bold uppercase tracking-[0.2em] text-black shadow-xl">
+                    View Collection
+                  </div>
                 </div>
               </div>
-            </button>
+            </div>
           ))}
         </div>
 
         {(lookbookList || []).length === 0 && (
           <div className="py-24 text-center">
             <p className="text-[10px] uppercase tracking-[0.3em] text-gray-400">
-              No lookbook items available
+              No collections available at this time
             </p>
           </div>
         )}

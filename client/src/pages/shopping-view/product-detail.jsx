@@ -202,7 +202,7 @@ function ProductDetailPage() {
       })
     ).then((data) => {
       if (data?.payload?.success) {
-        dispatch(fetchCartItems(user?.id));
+        dispatch(fetchCartItems({ userId: user?.id }));
         toast({ title: "Added to bag" });
       } else {
         toast({

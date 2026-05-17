@@ -68,6 +68,7 @@ const addProduct = async (req, res) => {
       colorImageMap,
       averageReview,
       variants,
+      isBestSeller,
     } = req.body;
 
     if (!title || !category || price === undefined || price === null) {
@@ -134,7 +135,7 @@ const addProduct = async (req, res) => {
     }
 
     // Calculate totalStock from variants if variants exist
-    const calculatedTotalStock = generatedVariants.length > 0 
+    const calculatedTotalStock = generatedVariants.length > 0
       ? generatedVariants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0)
       : totalStock;
 
@@ -153,6 +154,8 @@ const addProduct = async (req, res) => {
       colorImageMap: processedColorImageMap,
       averageReview,
       variants: generatedVariants,
+      isBestSeller: isBestSeller || false,
+      isSaleItem: isSaleItem || false,
     });
 
     await newlyCreatedProduct.save();
@@ -171,12 +174,16 @@ const addProduct = async (req, res) => {
 
 //fetch all products
 
+const { enrichProductsWithAutomaticPromotions } = require("../../helpers/promotionCalculator");
+
 const fetchAllProducts = async (req, res) => {
   try {
     const listOfProducts = await Product.find({});
+    const enrichedProducts = await enrichProductsWithAutomaticPromotions(listOfProducts);
+
     res.status(200).json({
       success: true,
-      data: listOfProducts,
+      data: enrichedProducts,
     });
   } catch (e) {
     console.log(e);
@@ -206,6 +213,7 @@ const editProduct = async (req, res) => {
       colorImageMap,
       averageReview,
       variants,
+      isBestSeller,
     } = req.body;
 
     let findProduct = await Product.findById(id);
@@ -245,7 +253,7 @@ const editProduct = async (req, res) => {
       // Check if sizes or colors changed
       const sizesChanged = JSON.stringify(processedSizes.sort()) !== JSON.stringify((findProduct.sizes || []).sort());
       const colorsChanged = JSON.stringify(processedColors.sort()) !== JSON.stringify((findProduct.colors || []).sort());
-      
+
       if (sizesChanged || colorsChanged) {
         // Regenerate variants
         generatedVariants = [];
@@ -266,7 +274,7 @@ const editProduct = async (req, res) => {
     }
 
     // Calculate totalStock from variants if variants exist
-    const calculatedTotalStock = generatedVariants.length > 0 
+    const calculatedTotalStock = generatedVariants.length > 0
       ? generatedVariants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0)
       : totalStock || findProduct.totalStock;
 
@@ -289,6 +297,8 @@ const editProduct = async (req, res) => {
     );
     findProduct.averageReview = averageReview || findProduct.averageReview;
     findProduct.variants = generatedVariants;
+    findProduct.isBestSeller = isBestSeller !== undefined ? isBestSeller : findProduct.isBestSeller;
+    findProduct.isSaleItem = isSaleItem !== undefined ? isSaleItem : findProduct.isSaleItem;
 
     await findProduct.save();
     res.status(200).json({
@@ -329,10 +339,46 @@ const deleteProduct = async (req, res) => {
   }
 };
 
+const clearAllBestsellers = async (req, res) => {
+  try {
+    await Product.updateMany({}, { isBestSeller: false });
+
+    res.status(200).json({
+      success: true,
+      message: "Đã xóa tất cả sản phẩm khỏi danh sách Bestseller",
+    });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({
+      success: false,
+      message: "Error occured",
+    });
+  }
+};
+
+const clearAllSaleItems = async (req, res) => {
+  try {
+    await Product.updateMany({}, { isSaleItem: false });
+
+    res.status(200).json({
+      success: true,
+      message: "Đã xóa tất cả sản phẩm khỏi danh sách Sale Items",
+    });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({
+      success: false,
+      message: "Error occured",
+    });
+  }
+};
+
 module.exports = {
   handleImageUpload,
   addProduct,
   fetchAllProducts,
   editProduct,
   deleteProduct,
+  clearAllBestsellers,
+  clearAllSaleItems,
 };

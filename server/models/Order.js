@@ -41,6 +41,26 @@ const OrderSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  discountAmount: {
+    type: Number,
+    default: 0
+  },
+  appliedPromotions: [
+    {
+      promotionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Promotion' },
+      name: String,
+      discountAmount: Number,
+      voucherCode: String,
+      productBreakdown: [
+        {
+          productId: String,
+          size: String,
+          color: String,
+          discountAmount: Number
+        }
+      ]
+    }
+  ]
 });
 
 module.exports = mongoose.model("Order", OrderSchema);

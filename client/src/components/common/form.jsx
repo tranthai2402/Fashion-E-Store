@@ -87,7 +87,29 @@ function CommonForm({
             }
           />
         );
+        break;
 
+      case "checkbox":
+        element = (
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id={getControlItem.name}
+              checked={value}
+              onCheckedChange={(checked) =>
+                setFormData({
+                  ...formData,
+                  [getControlItem.name]: checked,
+                })
+              }
+            />
+            <Label
+              htmlFor={getControlItem.name}
+              className="text-sm font-medium leading-none cursor-pointer"
+            >
+              {getControlItem.placeholder}
+            </Label>
+          </div>
+        );
         break;
 
       case "checkbox-group":

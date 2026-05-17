@@ -7,8 +7,8 @@ const activeProductMatch = {
 const getLookbookList = async (_req, res) => {
   try {
     const data = await Lookbook.find({})
-      .select("_id imageUrl createdAt")
-      .sort({ createdAt: -1 });
+      .select("_id imageUrl createdAt order")
+      .sort({ order: 1 });
 
     return res.status(200).json({
       success: true,

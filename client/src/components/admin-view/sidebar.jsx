@@ -5,7 +5,10 @@ import {
   Images,
   ShoppingBasket,
   Users,
-  Clapperboard,
+  Tag,
+  BadgePercent,
+  Star,
+  ImagePlay,
 } from "lucide-react";
 import { Fragment } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -37,16 +40,40 @@ const adminSidebarMenuItems = [
     icon: <Users />,
   },
   {
+    id: "features",
+    label: "Feature Images",
+    path: "/admin/features",
+    icon: <ImagePlay />,
+  },
+  {
     id: "lookbook",
     label: "Lookbook",
     path: "/admin/lookbook",
     icon: <Images />,
   },
   {
-    id: "videos",
-    label: "Videos",
-    path: "/admin/videos",
-    icon: <Clapperboard />,
+    id: "promotions",
+    label: "Sales & Promotions",
+    path: "/admin/promotions",
+    icon: <Tag />,
+  },
+  {
+    id: "newsletter",
+    label: "Newsletter & Emails",
+    path: "/admin/newsletter",
+    icon: <BadgePercent />,
+  },
+  {
+    id: "bestsellers",
+    label: "Bestsellers",
+    path: "/admin/bestsellers",
+    icon: <Star />,
+  },
+  {
+    id: "sales",
+    label: "Hot Sale Products",
+    path: "/admin/sales",
+    icon: <Tag />,
   },
 ];
 
@@ -58,7 +85,7 @@ function MenuItems({ setOpen }) {
     <nav className="mt-8 flex-col flex gap-2">
       {adminSidebarMenuItems.map((menuItem) => {
         const isActive = location.pathname === menuItem.path;
-        
+
         return (
           <div
             key={menuItem.id}
@@ -66,11 +93,10 @@ function MenuItems({ setOpen }) {
               navigate(menuItem.path);
               setOpen ? setOpen(false) : null;
             }}
-            className={`flex cursor-pointer text-xl items-center gap-2 rounded-md px-3 py-2 transition-all duration-200 ${
-              isActive 
-                ? "bg-sky-200 text-sky-950 font-bold shadow-sm" 
+            className={`flex cursor-pointer text-xl items-center gap-2 rounded-md px-3 py-2 transition-all duration-200 ${isActive
+                ? "bg-sky-200 text-sky-950 font-bold shadow-sm"
                 : "text-sky-900 hover:bg-sky-200 hover:text-sky-950"
-            }`}
+              }`}
           >
             {menuItem.icon}
             <span>{menuItem.label}</span>

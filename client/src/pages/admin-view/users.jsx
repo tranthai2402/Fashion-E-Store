@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchAllUsers, updateUserRole } from "@/store/admin/user-slice";
+import { fetchAllUsers, updateUserRole, deleteUser } from "@/store/admin/user-slice";
+import { Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -71,9 +72,11 @@ function AdminUsers() {
   const filteredUserList =
     userList && userList.length > 0
       ? userList.filter((userItem) => {
-          const matchesSearch =
-            userItem.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            userItem.email.toLowerCase().includes(searchTerm.toLowerCase());
+          const uName = (userItem?.userName || "").toLowerCase();
+          const uEmail = (userItem?.email || "").toLowerCase();
+          const sTerm = (searchTerm || "").toLowerCase();
+          
+          const matchesSearch = uName.includes(sTerm) || uEmail.includes(sTerm);
           const matchesRole =
             roleFilter === "all" || userItem.role === roleFilter;
 
@@ -108,6 +111,20 @@ function AdminUsers() {
         });
       }
     });
+  }
+
+  function handleDeleteUser(userId) {
+    if (window.confirm("Are you sure you want to delete this user?")) {
+      dispatch(deleteUser(userId)).then((data) => {
+        if (data?.payload?.success) {
+          dispatch(fetchAllUsers());
+          toast({
+            title: "Success",
+            description: data?.payload?.message,
+          });
+        }
+      });
+    }
   }
 
   useEffect(() => {
@@ -169,13 +186,23 @@ function AdminUsers() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Button
-                          onClick={() =>
-                            handleUpdateRole(userItem._id, userItem.role)
-                          }
-                        >
-                          Change Role
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            onClick={() =>
+                              handleUpdateRole(userItem._id, userItem.role)
+                            }
+                            size="sm"
+                          >
+                            Change Role
+                          </Button>
+                          <Button
+                            onClick={() => handleDeleteUser(userItem._id)}
+                            variant="destructive"
+                            size="sm"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))

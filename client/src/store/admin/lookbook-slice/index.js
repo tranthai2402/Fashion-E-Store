@@ -34,11 +34,39 @@ export const addNewLookbook = createAsyncThunk(
   }
 );
 
+export const editLookbook = createAsyncThunk(
+  "/admin/lookbook/edit",
+  async ({ id, payload }) => {
+    const response = await axios.put(
+      `http://localhost:5000/api/admin/lookbook/update/${id}`,
+      payload,
+      {
+        withCredentials: true,
+      }
+    );
+    return response.data;
+  }
+);
+
 export const deleteLookbook = createAsyncThunk(
   "/admin/lookbook/delete",
   async (id) => {
     const response = await axios.delete(
       getApiUrl(`/api/admin/lookbook/delete/${id}`),
+      {
+        withCredentials: true,
+      }
+    );
+    return response.data;
+  }
+);
+
+export const reorderLookbooks = createAsyncThunk(
+  "/admin/lookbook/reorder",
+  async (items) => {
+    const response = await axios.put(
+      `http://localhost:5000/api/admin/lookbook/reorder`,
+      { items },
       {
         withCredentials: true,
       }
@@ -80,6 +108,25 @@ const adminLookbookSlice = createSlice({
         state.isLoading = false;
       })
       .addCase(deleteLookbook.rejected, (state) => {
+        state.isLoading = false;
+      })
+      .addCase(reorderLookbooks.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(reorderLookbooks.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.lookbookList = action.payload.data || [];
+      })
+      .addCase(reorderLookbooks.rejected, (state) => {
+        state.isLoading = false;
+      })
+      .addCase(editLookbook.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(editLookbook.fulfilled, (state) => {
+        state.isLoading = false;
+      })
+      .addCase(editLookbook.rejected, (state) => {
         state.isLoading = false;
       });
   },

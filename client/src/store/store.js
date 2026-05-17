@@ -16,6 +16,8 @@ import adminLookbookReducer from "./admin/lookbook-slice";
 import adminVideoReducer from "./admin/video-slice";
 import shopLookbookReducer from "./shop/lookbook-slice";
 import commonVideoReducer from "./common/video-slice";
+import adminPromoSlice from "./admin/promotion-slice";
+import adminNewsletterSlice from "./admin/newsletter-slice";
 
 const store = configureStore({
   reducer: {
@@ -27,6 +29,8 @@ const store = configureStore({
     adminUser: adminUserReducer,
     adminLookbook: adminLookbookReducer,
     adminVideo: adminVideoReducer,
+    adminPromotions: adminPromoSlice,
+    adminNewsletter: adminNewsletterSlice,
 
     shopProducts: shopProductsSlice,
     shopCart: shopCartSlice,

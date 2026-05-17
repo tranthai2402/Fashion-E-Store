@@ -1,5 +1,8 @@
 const Cart = require("../../models/Cart");
 const Product = require("../../models/Product");
+const User = require("../../models/User");
+const { calculateCartDiscounts, enrichProductsWithAutomaticPromotions } = require("../../helpers/promotionCalculator");
+
 
 const normalizeValue = (value) => String(value || "").trim().toLowerCase();
 
@@ -132,10 +135,10 @@ const addToCart = async (req, res) => {
       data: cart,
     });
   } catch (error) {
-    console.log(error);
+    console.log("Add to cart error:", error);
     res.status(500).json({
       success: false,
-      message: "Error",
+      message: error.message || "Error occurred while adding to cart",
     });
   }
 };
@@ -143,6 +146,7 @@ const addToCart = async (req, res) => {
 const fetchCartItems = async (req, res) => {
   try {
     const { userId } = req.params;
+    const { voucherCode } = req.query; // Capture optional voucherCode
 
     if (!userId) {
       return res.status(400).json({
@@ -153,7 +157,7 @@ const fetchCartItems = async (req, res) => {
 
     const cart = await Cart.findOne({ userId }).populate({
       path: "items.productId",
-      select: "image title price salePrice",
+      select: "image title price salePrice category",
     });
 
     if (!cart) {
@@ -189,14 +193,62 @@ const fetchCartItems = async (req, res) => {
         quantity: item.quantity,
         size: variant ? variant.size : item.size,
         color: variant ? variant.color : item.color,
+        category: product.category,
       };
     });
+
+    // Tính toán khuyến mãi và giảm giá
+    const user = await User.findById(userId); // Fetch user context
+    let calculations = { subtotal: 0, discountTotal: 0, grandTotal: 0, appliedPromotions: [] };
+    let voucherError = null;
+
+    // Enrich items with automatic promotions before calculations
+    const productsToEnrich = populateCartItems.map(item => ({
+      _id: item.productId,
+      price: item.price,
+      salePrice: item.salePrice,
+      category: item.category
+    }));
+    const enrichedProducts = await enrichProductsWithAutomaticPromotions(productsToEnrich);
+    
+    // Update populateCartItems with enriched salePrices
+    populateCartItems.forEach((item, idx) => {
+      item.salePrice = enrichedProducts[idx].salePrice;
+    });
+
+    // Lọc danh sách sản phẩm dựa trên selectedItems nếu được cung cấp (dùng cho trang Checkout)
+    let itemsToCalculate = populateCartItems;
+    if (req.query.selectedItems !== undefined) {
+      const selectedKeys = Array.isArray(req.query.selectedItems) 
+        ? req.query.selectedItems 
+        : (req.query.selectedItems === "" ? [] : [req.query.selectedItems]);
+        
+      itemsToCalculate = populateCartItems.filter(item => {
+        const itemKey = `${item.productId}-${item.size || ''}-${item.color || ''}`;
+        return selectedKeys.includes(itemKey);
+      });
+    }
+
+    try {
+      if (itemsToCalculate.length > 0) {
+        calculations = await calculateCartDiscounts(itemsToCalculate, user, voucherCode);
+      }
+    } catch (calcError) {
+      console.error("Promotion calculation error:", calcError);
+      voucherError = calcError.message;
+      // Vẫn tiếp tục tính toán nhưng bỏ qua voucher nếu lỗi voucher
+      try {
+         calculations = await calculateCartDiscounts(itemsToCalculate, user, null);
+      } catch(e) {}
+    }
 
     res.status(200).json({
       success: true,
       data: {
         ...cart._doc,
         items: populateCartItems,
+        calculations,
+        voucherError
       },
     });
   } catch (error) {

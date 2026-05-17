@@ -5,24 +5,34 @@ const getRevenueAnalytics = async (req, res) => {
   try {
     const { filter = "day" } = req.query;
 
-    // 1. Get confirmed/paid orders for revenue and order count aggregation
-    const orders = await Order.find({
-      orderStatus: "confirmed",
-      paymentStatus: "paid",
+    // Revenue rules by payment method:
+    // - COD: only count when delivered (payment collected on delivery)
+    // - QR / Stripe: count from inShipping onward (payment already received)
+    const codOrders = await Order.find({
+      paymentMethod: "cod",
+      $or: [{ orderStatus: "delivered" }, { paymentStatus: "paid" }],
     });
 
-    // 2. Count unique customers who have actually purchased (paid)
-    // We use a Set to get unique userIds from the paid orders
-    const purchasingCustomerIds = new Set(orders.map(order => order.userId));
+    const prepaidOrders = await Order.find({
+      paymentMethod: { $in: ["qr_code", "stripe"] },
+      orderStatus: { $in: ["inShipping", "delivered"] },
+    });
+
+    const revenueOrders = [...codOrders, ...prepaidOrders];
+
+    // 2. Count unique customers from revenue-qualifying orders
+    const purchasingCustomerIds = new Set(revenueOrders.map(order => order.userId));
     const totalUsers = purchasingCustomerIds.size;
 
-    // 3. Get total number of orders (all orders)
-    const totalOrdersCount = await Order.countDocuments({});
+    // 3. Get total number of orders (exclude cancelled)
+    const totalOrdersCount = await Order.countDocuments({
+      orderStatus: { $ne: "cancelled" },
+    });
 
     let aggregatedData = {};
     let totalRevenue = 0;
 
-    orders.forEach((order) => {
+    revenueOrders.forEach((order) => {
       const date = new Date(order.orderDate);
       let key;
 
@@ -98,11 +108,20 @@ const getComparisonAnalytics = async (req, res) => {
         end = new Date(Date.UTC(period, 11, 31, 23, 59, 59));
       }
 
-      const orders = await Order.find({
+      // COD: only delivered | QR/Stripe: inShipping + delivered
+      const codOrders = await Order.find({
         orderDate: { $gte: start, $lte: end },
-        orderStatus: "confirmed",
-        paymentStatus: "paid",
+        paymentMethod: "cod",
+        $or: [{ orderStatus: "delivered" }, { paymentStatus: "paid" }],
       });
+
+      const prepaidOrders = await Order.find({
+        orderDate: { $gte: start, $lte: end },
+        paymentMethod: { $in: ["qr_code", "stripe"] },
+        orderStatus: { $in: ["inShipping", "delivered"] },
+      });
+
+      const orders = [...codOrders, ...prepaidOrders];
 
       const totalRevenue = orders.reduce((sum, order) => sum + order.totalAmount, 0);
       const totalOrders = orders.length;

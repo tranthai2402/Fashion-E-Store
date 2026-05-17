@@ -63,6 +63,28 @@ export const deleteProduct = createAsyncThunk(
   }
 );
 
+export const clearAllBestsellers = createAsyncThunk(
+  "/products/clearAllBestsellers",
+  async () => {
+    const result = await axios.put(
+      "http://localhost:5000/api/admin/products/clear-bestsellers"
+    );
+
+    return result?.data;
+  }
+);
+
+export const clearAllSaleItems = createAsyncThunk(
+  "/products/clearAllSaleItems",
+  async () => {
+    const result = await axios.put(
+      "http://localhost:5000/api/admin/products/clear-sale-items"
+    );
+
+    return result?.data;
+  }
+);
+
 const AdminProductsSlice = createSlice({
   name: "adminProducts",
   initialState,
@@ -74,7 +96,7 @@ const AdminProductsSlice = createSlice({
       })
       .addCase(fetchAllProducts.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.productList = action.payload.data;
+        state.productList = action.payload?.data || [];
       })
       .addCase(fetchAllProducts.rejected, (state, action) => {
         state.isLoading = false;

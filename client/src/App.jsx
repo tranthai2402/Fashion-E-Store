@@ -2,6 +2,7 @@ import { Route, Routes } from "react-router-dom";
 import AuthLayout from "./components/auth/layout";
 import AuthLogin from "./pages/auth/login";
 import AuthRegister from "./pages/auth/register";
+import AuthVerify from "./pages/auth/verify";
 import AdminLayout from "./components/admin-view/layout";
 import AdminDashboard from "./pages/admin-view/dashboard";
 import AdminProducts from "./pages/admin-view/products";
@@ -10,6 +11,10 @@ import AdminFeatures from "./pages/admin-view/features";
 import AdminUsers from "./pages/admin-view/users";
 import AdminLookbook from "./pages/admin-view/lookbook";
 import AdminVideos from "./pages/admin-view/videos";
+import AdminPromotions from "./pages/admin-view/promotions";
+import AdminNewsletter from "./pages/admin-view/newsletter";
+import AdminBestsellers from "./pages/admin-view/bestsellers";
+import AdminSales from "./pages/admin-view/sales";
 import ShoppingLayout from "./components/shopping-view/layout";
 import NotFound from "./pages/not-found";
 import ShoppingHome from "./pages/shopping-view/home";
@@ -69,6 +74,7 @@ function App() {
         >
           <Route path="login" element={<AuthLogin />} />
           <Route path="register" element={<AuthRegister />} />
+          <Route path="verify" element={<AuthVerify />} />
         </Route>
         <Route
           path="/admin"
@@ -85,6 +91,10 @@ function App() {
           <Route path="videos" element={<AdminVideos />} />
           <Route path="users" element={<AdminUsers />} />
           <Route path="lookbook" element={<AdminLookbook />} />
+          <Route path="promotions" element={<AdminPromotions />} />
+          <Route path="newsletter" element={<AdminNewsletter />} />
+          <Route path="bestsellers" element={<AdminBestsellers />} />
+          <Route path="sales" element={<AdminSales />} />
         </Route>
         <Route
           path="/shop"

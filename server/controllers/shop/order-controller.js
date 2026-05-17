@@ -2,7 +2,6 @@ const Order = require("../../models/Order");
 const Cart = require("../../models/Cart");
 const Product = require("../../models/Product");
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-const clientOrigin = process.env.CLIENT_ORIGIN || "http://localhost:5173";
 const stripe = stripeSecretKey ? require("stripe")(stripeSecretKey) : null;
 
 const ORDER_CODE_PREFIX = "ORD";
@@ -168,14 +167,18 @@ async function releaseReservedStock(items = []) {
   }
 }
 
+const Voucher = require("../../models/Voucher");
+const Promotion = require("../../models/Promotion");
+
 const createOrder = async (req, res) => {
   try {
     const {
       userId, cartItems, addressInfo, orderStatus, totalAmount,
-      orderDate, orderUpdateDate, cartId,
+      orderDate, orderUpdateDate, cartId, discountAmount, appliedPromotions,
+      paymentMethod = "stripe"
     } = req.body;
 
-    if (!stripe) {
+    if (paymentMethod === "stripe" && !stripe) {
       return res.status(500).json({
         success: false,
         message: "Stripe secret key is not configured on server",
@@ -190,53 +193,110 @@ const createOrder = async (req, res) => {
     }
 
     const orderCode = await createUniqueOrderCode(orderDate);
-    let stripeSession = null;
     let newlyCreatedOrder = null;
     const reservedItems = [];
 
     try {
+      // 1. Reserve Stock
       for (const cartItem of cartItems) {
         await reserveStockForItems([cartItem]);
         reservedItems.push(cartItem);
       }
 
+      // 2. Create Order
       newlyCreatedOrder = new Order({
         userId,
         orderCode,
         cartId,
         cartItems,
         addressInfo,
-        orderStatus,
-        paymentMethod: "stripe",
-        paymentStatus: "pending",
+        orderStatus: paymentMethod === "stripe" ? "pending" : "confirmed",
+        paymentMethod,
+        paymentStatus: paymentMethod === "stripe" ? "pending" : "unpaid", // COD and QR start as unpaid
         totalAmount,
         orderDate,
         orderUpdateDate,
         stockReserved: true,
+        discountAmount: discountAmount || 0,
+        appliedPromotions: appliedPromotions || []
       });
 
       await newlyCreatedOrder.save();
 
-      // 2. Chuyển đổi cartItems thành định dạng line_items của Stripe
-      const line_items = cartItems.map((item) => ({
-        price_data: {
-          currency: "usd",
-          product_data: {
-            name: item.title,
+      // 3. Handle specific payment methods
+      if (paymentMethod === "stripe") {
+        const line_items = cartItems.map((item) => ({
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: item.title,
+            },
+            unit_amount: Math.round(Number(item.price || 0) * 100),
           },
-          unit_amount: Math.round(Number(item.price || 0) * 100),
-        },
-        quantity: item.quantity,
-      }));
+          quantity: item.quantity,
+        }));
 
-      // 3. Tạo Stripe Checkout Session
-      stripeSession = await stripe.checkout.sessions.create({
-        payment_method_types: ["card"],
-        line_items: line_items,
-        mode: "payment",
-        success_url: `${clientOrigin}/shop/stripe-return?orderId=${newlyCreatedOrder._id}&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${clientOrigin}/shop/stripe-cancel`,
-      });
+        const sessionConfig = {
+          payment_method_types: ["card"],
+          line_items: line_items,
+          mode: "payment",
+          success_url: `${process.env.CLIENT_URL}/shop/stripe-return?orderId=${newlyCreatedOrder._id}&session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${process.env.CLIENT_URL}/shop/stripe-cancel`,
+        };
+
+        if (discountAmount > 0) {
+          const stripeCoupon = await stripe.coupons.create({
+            amount_off: Math.round(discountAmount * 100),
+            currency: "usd",
+            duration: "once",
+            name: "Voucher / Khuyến mãi",
+          });
+          sessionConfig.discounts = [{ coupon: stripeCoupon.id }];
+        }
+
+        const stripeSession = await stripe.checkout.sessions.create(sessionConfig);
+
+        return res.status(201).json({
+          success: true,
+          approvalURL: stripeSession.url,
+          orderId: newlyCreatedOrder._id,
+        });
+      } else {
+        // For COD or QR Code, clear specific items from cart
+        const cart = await Cart.findOne({ userId });
+        if (cart) {
+          cart.items = cart.items.filter((cartItem) => {
+            return !cartItems.some((orderedItem) => {
+              const pId1 = cartItem.productId.toString();
+              const pId2 = (orderedItem.productId._id || orderedItem.productId).toString();
+              return (
+                pId1 === pId2 &&
+                (cartItem.size || "") === (orderedItem.size || "") &&
+                (cartItem.color || "") === (orderedItem.color || "")
+              );
+            });
+          });
+
+          if (cart.items.length === 0) {
+            await Cart.findByIdAndDelete(cart._id);
+          } else {
+            await cart.save();
+          }
+        }
+
+        // Update totalSold for each product
+        for (const item of cartItems) {
+            await Product.findByIdAndUpdate(item.productId, {
+              $inc: { totalSold: item.quantity },
+            });
+        }
+
+        return res.status(201).json({
+          success: true,
+          orderId: newlyCreatedOrder._id,
+          message: paymentMethod === "cod" ? "Order created with COD" : "Order created with QR Code",
+        });
+      }
     } catch (processingError) {
       if (reservedItems.length > 0) {
         await releaseReservedStock(reservedItems);
@@ -246,13 +306,6 @@ const createOrder = async (req, res) => {
       }
       throw processingError;
     }
-
-    // 4. Trả URL về cho Frontend
-    res.status(201).json({
-      success: true,
-      approvalURL: stripeSession.url,
-      orderId: newlyCreatedOrder._id,
-    });
 
   } catch (e) {
     console.log(e);
@@ -267,44 +320,63 @@ const createOrder = async (req, res) => {
       success: false,
       message: knownStockError
         ? e.message
-        : "Lỗi tạo đơn hàng Stripe!",
+        : "Lỗi tạo đơn hàng!",
     });
   }
 };
 
 const capturePayment = async (req, res) => {
   try {
-    // Lấy orderId và sessionId từ frontend gửi lên
     const { orderId, sessionId } = req.body;
 
     let order = await Order.findById(orderId);
     if (!order) return res.status(404).json({ success: false, message: "Order not found" });
 
-    // (Tùy chọn) Bạn có thể dùng sessionId để gọi API Stripe xác minh lại trạng thái thanh toán một lần nữa cho chắc chắn
-    // const session = await stripe.checkout.sessions.retrieve(sessionId);
-    // if (session.payment_status !== 'paid') return res.status(400).json({...})
-
     order.paymentStatus = "paid";
-    order.orderStatus = "inProcess";
-    order.paymentId = sessionId; // Lưu sessionId của Stripe thay cho paymentId của PayPal
+    order.orderStatus = "confirmed";
+    order.paymentId = sessionId;
 
     if (!order.stockReserved) {
       await reserveStockForItems(order.cartItems);
       order.stockReserved = true;
     }
 
-    const cart = await Cart.findById(order.cartId);
-    if (cart) {
-      order.cartItems.forEach((orderedItem) => {
-        cart.items = cart.items.filter(
-          (cartItem) =>
-            !(cartItem.productId.toString() === orderedItem.productId.toString() &&
-              (cartItem.size || '') === (orderedItem.size || '') &&
-              (cartItem.color || '') === (orderedItem.color || ''))
-        );
+    for (const item of order.cartItems) {
+      await Product.findByIdAndUpdate(item.productId, {
+        $inc: { totalSold: item.quantity },
       });
+    }
+
+    if (order.appliedPromotions && order.appliedPromotions.length > 0) {
+      for (const promo of order.appliedPromotions) {
+        if (promo.promotionId) {
+          await Promotion.findByIdAndUpdate(promo.promotionId, { $inc: { usedCount: 1 } });
+        }
+        if (promo.voucherCode) {
+          await Voucher.findOneAndUpdate(
+            { code: promo.voucherCode },
+            { $inc: { usedCount: 1 } }
+          );
+        }
+      }
+    }
+
+    const cart = await Cart.findOne({ userId: order.userId });
+    if (cart) {
+      cart.items = cart.items.filter((cartItem) => {
+        return !order.cartItems.some((orderedItem) => {
+          const pId1 = cartItem.productId.toString();
+          const pId2 = (orderedItem.productId._id || orderedItem.productId).toString();
+          return (
+            pId1 === pId2 &&
+            (cartItem.size || "") === (orderedItem.size || "") &&
+            (cartItem.color || "") === (orderedItem.color || "")
+          );
+        });
+      });
+
       if (cart.items.length === 0) {
-        await Cart.findByIdAndDelete(order.cartId);
+        await Cart.findByIdAndDelete(cart._id);
       } else {
         await cart.save();
       }
@@ -319,16 +391,9 @@ const capturePayment = async (req, res) => {
     });
   } catch (e) {
     console.log(e);
-    const knownStockError =
-      typeof e?.message === "string" &&
-      (e.message.includes("Insufficient stock") ||
-        e.message.includes("Please select size and color") ||
-        e.message.includes("Invalid cart item data") ||
-        e.message.includes("Product not found"));
-
-    res.status(knownStockError ? 400 : 500).json({
+    res.status(500).json({
       success: false,
-      message: knownStockError ? e.message : "Lỗi xác nhận thanh toán!",
+      message: "Lỗi xác nhận thanh toán!",
     });
   }
 };
@@ -336,14 +401,7 @@ const capturePayment = async (req, res) => {
 const getAllOrdersByUser = async (req, res) => {
   try {
     const { userId } = req.params;
-
     const orders = await Order.find({ userId }).sort({ orderDate: -1 });
-
-    for (const order of orders) {
-      if (!order.orderCode) {
-        await ensureOrderCode(order);
-      }
-    }
 
     if (!orders.length) {
       return res.status(404).json({
@@ -368,7 +426,6 @@ const getAllOrdersByUser = async (req, res) => {
 const getOrderDetails = async (req, res) => {
   try {
     const { id } = req.params;
-
     const order = await Order.findById(id);
 
     if (!order) {
@@ -377,8 +434,6 @@ const getOrderDetails = async (req, res) => {
         message: "Order not found!",
       });
     }
-
-    await ensureOrderCode(order);
 
     res.status(200).json({
       success: true,
@@ -400,7 +455,7 @@ const checkProductPurchase = async (req, res) => {
     const order = await Order.findOne({
       userId,
       "cartItems.productId": productId,
-      orderStatus: { $in: ["inprocess", "confirmed", "delivered"] },
+      orderStatus: { $in: ["inProcess", "confirmed", "delivered"] },
     });
 
     res.status(200).json({
@@ -416,10 +471,109 @@ const checkProductPurchase = async (req, res) => {
   }
 };
 
+const handlePaymentWebhook = async (req, res) => {
+  try {
+    const { content, transferAmount, amount, description } = req.body;
+    const transferContent = content || description;
+    
+    if (transferContent) {
+        const allPendingOrders = await Order.find({ paymentStatus: "unpaid", paymentMethod: "qr_code" });
+        const matchedOrder = allPendingOrders.find(order => 
+            transferContent.toLowerCase().includes(order.orderCode.toLowerCase())
+        );
+
+        if (matchedOrder) {
+            matchedOrder.paymentStatus = "paid";
+            matchedOrder.orderStatus = "confirmed";
+            await matchedOrder.save();
+            return res.status(200).json({ success: true });
+        }
+    }
+
+    res.status(200).json({ success: true, message: "Webhook received" });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ success: false });
+  }
+};
+
+const cancelOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const order = await Order.findById(id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy đơn hàng!",
+      });
+    }
+
+    // Only allow cancellation if order is NOT yet in shipping or delivered
+    const cancellableStatuses = ["pending", "confirmed", "inProcess"];
+    if (!cancellableStatuses.includes(order.orderStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: "Không thể hủy đơn hàng khi đã đang giao hàng hoặc đã giao!",
+      });
+    }
+
+    // Release reserved stock back to inventory
+    if (order.stockReserved && order.cartItems && order.cartItems.length > 0) {
+      await releaseReservedStock(order.cartItems);
+    }
+
+    // Revert totalSold for each product
+    for (const item of order.cartItems) {
+      // Only revert if the order was confirmed (totalSold was incremented)
+      if (order.orderStatus !== "pending") {
+        await Product.findByIdAndUpdate(item.productId, {
+          $inc: { totalSold: -item.quantity },
+        });
+      }
+    }
+
+    // Revert voucher/promotion usage counts
+    if (order.appliedPromotions && order.appliedPromotions.length > 0) {
+      for (const promo of order.appliedPromotions) {
+        if (promo.promotionId) {
+          await Promotion.findByIdAndUpdate(promo.promotionId, { $inc: { usedCount: -1 } });
+        }
+        if (promo.voucherCode) {
+          await Voucher.findOneAndUpdate(
+            { code: promo.voucherCode },
+            { $inc: { usedCount: -1 } }
+          );
+        }
+      }
+    }
+
+    order.orderStatus = "cancelled";
+    order.stockReserved = false;
+    order.orderUpdateDate = new Date();
+    await order.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Đơn hàng đã được hủy thành công!",
+    });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi khi hủy đơn hàng!",
+    });
+  }
+};
+
 module.exports = {
   createOrder,
   capturePayment,
   getAllOrdersByUser,
   getOrderDetails,
   checkProductPurchase,
+  handlePaymentWebhook,
+  cancelOrder,
 };
+

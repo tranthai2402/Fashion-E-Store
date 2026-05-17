@@ -1,11 +1,12 @@
 import axios from "axios";
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { getApiUrl } from "@/config/api";
 
 const initialState = {
   cartItems: [],
   isLoading: false,
   selectedItems: [],
+  checkoutItems: [],
+  payingItems: [],
 };
 
 export const addToCart = createAsyncThunk(
@@ -13,7 +14,7 @@ export const addToCart = createAsyncThunk(
   async ({ userId, productId, quantity, size, color }, { rejectWithValue }) => {
     try {
       const response = await axios.post(
-        getApiUrl("/api/shop/cart/add"),
+        "http://localhost:5000/api/shop/cart/add",
         {
           userId,
           productId,
@@ -32,10 +33,13 @@ export const addToCart = createAsyncThunk(
 
 export const fetchCartItems = createAsyncThunk(
   "cart/fetchCartItems",
-  async (userId, { rejectWithValue }) => {
+  async ({ userId, voucherCode, selectedItems }, { rejectWithValue }) => {
     try {
       const response = await axios.get(
-        getApiUrl(`/api/shop/cart/get/${userId}`)
+        `http://localhost:5000/api/shop/cart/get/${userId}`,
+        {
+          params: { voucherCode, selectedItems }
+        }
       );
 
       return response.data;
@@ -50,7 +54,7 @@ export const deleteCartItem = createAsyncThunk(
   async ({ userId, productId, size, color }, { rejectWithValue }) => {
     try {
       const response = await axios.delete(
-        getApiUrl(`/api/shop/cart/${userId}/${productId}`),
+        `http://localhost:5000/api/shop/cart/${userId}/${productId}`,
         {
           params: { size, color },
         }
@@ -68,7 +72,7 @@ export const updateCartQuantity = createAsyncThunk(
   async ({ userId, productId, quantity, size, color }, { rejectWithValue }) => {
     try {
       const response = await axios.put(
-        getApiUrl("/api/shop/cart/update-cart"),
+        "http://localhost:5000/api/shop/cart/update-cart",
         {
           userId,
           productId,
@@ -108,6 +112,38 @@ const shoppingCartSlice = createSlice({
     },
     clearSelectedItems: (state) => {
       state.selectedItems = [];
+    },
+    // New reducers for Checkout snapshot
+    setCheckoutItems: (state, action) => {
+      state.checkoutItems = action.payload;
+      state.payingItems = action.payload; // Initially all items chosen for checkout are checked for payment
+    },
+    toggleCheckoutSelectItem: (state, action) => {
+      const { id } = action.payload;
+      const index = (state.checkoutItems || []).indexOf(id);
+      if (index > -1) {
+        state.checkoutItems.splice(index, 1);
+        // Also remove from paying items if present
+        const pIndex = (state.payingItems || []).indexOf(id);
+        if (pIndex > -1) state.payingItems.splice(pIndex, 1);
+      }
+    },
+    togglePayingItem: (state, action) => {
+      const { id } = action.payload;
+      if (!state.payingItems) state.payingItems = [];
+      const index = state.payingItems.indexOf(id);
+      if (index === -1) {
+        state.payingItems.push(id);
+      } else {
+        state.payingItems.splice(index, 1);
+      }
+    },
+    selectAllPayingItems: (state, action) => {
+      state.payingItems = action.payload;
+    },
+    clearCheckoutItems: (state) => {
+      state.checkoutItems = [];
+      state.payingItems = [];
     },
   },
   extraReducers: (builder) => {
@@ -159,6 +195,10 @@ const shoppingCartSlice = createSlice({
   },
 });
 
-export const { clearCart, toggleSelectItem, selectAllItems, clearSelectedItems } = shoppingCartSlice.actions;
+export const { 
+  clearCart, toggleSelectItem, selectAllItems, clearSelectedItems, 
+  setCheckoutItems, toggleCheckoutSelectItem, clearCheckoutItems,
+  togglePayingItem, selectAllPayingItems 
+} = shoppingCartSlice.actions;
 
 export default shoppingCartSlice.reducer;

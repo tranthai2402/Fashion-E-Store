@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 import { Button } from "../ui/button";
 import axios from "axios";
 import { Skeleton } from "../ui/skeleton";
-import { getApiUrl } from "@/config/api";
+import { useToast } from "../ui/use-toast";
 
 function ProductImageUpload({
   imageFile,
@@ -19,10 +19,29 @@ function ProductImageUpload({
   isMulti = false,
 }) {
   const inputRef = useRef(null);
+  const { toast } = useToast();
+  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
   function handleImageFileChange(event) {
     const selectedFiles = event.target.files;
     if (selectedFiles && selectedFiles.length > 0) {
+      const validFiles = Array.from(selectedFiles).filter((file) => {
+        if (file.size > MAX_FILE_SIZE) {
+          toast({
+            title: "File quá lớn",
+            description: `Ảnh ${file.name} có kích thước lớn hơn 5MB. Vui lòng chọn ảnh khác.`,
+            variant: "destructive",
+          });
+          return false;
+        }
+        return true;
+      });
+
+      if (validFiles.length === 0) {
+        if (inputRef.current) inputRef.current.value = "";
+        return;
+      }
+
       if (isMulti) {
         setImageFile((prevFiles) => {
           const currentFiles = Array.isArray(prevFiles)
@@ -30,10 +49,10 @@ function ProductImageUpload({
             : prevFiles
             ? [prevFiles]
             : [];
-          return [...currentFiles, ...Array.from(selectedFiles)];
+          return [...currentFiles, ...validFiles];
         });
       } else {
-        setImageFile(selectedFiles[0]);
+        setImageFile(validFiles[0]);
       }
     }
   }
@@ -46,6 +65,20 @@ function ProductImageUpload({
     event.preventDefault();
     const droppedFiles = event.dataTransfer.files;
     if (droppedFiles && droppedFiles.length > 0) {
+      const validFiles = Array.from(droppedFiles).filter((file) => {
+        if (file.size > MAX_FILE_SIZE) {
+          toast({
+            title: "File quá lớn",
+            description: `Ảnh ${file.name} có kích thước lớn hơn 5MB. Vui lòng chọn ảnh khác.`,
+            variant: "destructive",
+          });
+          return false;
+        }
+        return true;
+      });
+
+      if (validFiles.length === 0) return;
+
       if (isMulti) {
         setImageFile((prevFiles) => {
           const currentFiles = Array.isArray(prevFiles)
@@ -53,10 +86,10 @@ function ProductImageUpload({
             : prevFiles
             ? [prevFiles]
             : [];
-          return [...currentFiles, ...Array.from(droppedFiles)];
+          return [...currentFiles, ...validFiles];
         });
       } else {
-        setImageFile(droppedFiles[0]);
+        setImageFile(validFiles[0]);
       }
     }
   }
@@ -85,7 +118,7 @@ function ProductImageUpload({
       const data = new FormData();
       data.append("my_file", file);
       const response = await axios.post(
-        getApiUrl("/api/admin/products/upload-image"),
+        "http://localhost:5000/api/admin/products/upload-image",
         data
       );
       return response?.data?.success ? response.data.result.url : null;

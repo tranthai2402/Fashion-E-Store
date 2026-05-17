@@ -1,10 +1,3 @@
-import ProductImageUpload from "@/components/admin-view/image-upload";
-import { Button } from "@/components/ui/button";
-import {
-  addFeatureImage,
-  deleteFeatureImage,
-  getFeatureImages,
-} from "@/store/common-slice";
 import { getRevenueAnalytics, getComparisonAnalytics } from "@/store/admin/analytics-slice";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -26,46 +19,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Users, ShoppingBag, DollarSign, ArrowRightLeft } from "lucide-react";
+import { Users, ShoppingBag, DollarSign, ArrowRightLeft, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 
 function AdminDashboard() {
-  const [imageFile, setImageFile] = useState(null);
-  const [uploadedImageUrl, setUploadedImageUrl] = useState("");
-  const [imageLoadingState, setImageLoadingState] = useState(false);
   const [filter, setFilter] = useState("day");
   const [isCompareMode, setIsCompareMode] = useState(false);
   const [period1, setPeriod1] = useState(new Date().toISOString().split("T")[0]);
   const [period2, setPeriod2] = useState(new Date(Date.now() - 86400000).toISOString().split("T")[0]);
 
   const dispatch = useDispatch();
-  const { featureImageList } = useSelector((state) => state.commonFeature);
   const { totalRevenue, totalUsers, totalOrdersCount, chartData, comparisonData } = useSelector(
     (state) => state.adminAnalytics
   );
 
-  function handleUploadFeatureImage() {
-    dispatch(addFeatureImage(uploadedImageUrl)).then((data) => {
-      if (data?.payload?.success) {
-        dispatch(getFeatureImages());
-        setImageFile(null);
-        setUploadedImageUrl("");
-      }
-    });
-  }
-
-  function handleDeleteFeatureImage(id) {
-    dispatch(deleteFeatureImage(id)).then((data) => {
-      if (data?.payload?.success) {
-        dispatch(getFeatureImages());
-      }
-    });
-  }
-
   useEffect(() => {
-    dispatch(getFeatureImages());
     if (isCompareMode) {
       dispatch(getComparisonAnalytics({ period1, period2, type: filter }));
     } else {
@@ -205,12 +175,12 @@ function AdminDashboard() {
               </Label>
             </div>
           </div>
-          
+
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Đơn vị:</span>
-              <Select 
-                value={filter} 
+              <Select
+                value={filter}
                 onValueChange={(value) => {
                   setFilter(value);
                   // Reset periods with appropriate formats when filter changes
@@ -259,8 +229,8 @@ function AdminDashboard() {
                     </Select>
                   ) : filter === "month" ? (
                     <div className="flex gap-1">
-                      <Select 
-                        value={period1.split("-")[1]} 
+                      <Select
+                        value={period1.split("-")[1]}
                         onValueChange={(m) => setPeriod1(`${period1.split("-")[0]}-${m}`)}
                       >
                         <SelectTrigger className="h-7 text-xs w-[90px]">
@@ -272,8 +242,8 @@ function AdminDashboard() {
                           ))}
                         </SelectContent>
                       </Select>
-                      <Select 
-                        value={period1.split("-")[0]} 
+                      <Select
+                        value={period1.split("-")[0]}
                         onValueChange={(y) => setPeriod1(`${y}-${period1.split("-")[1]}`)}
                       >
                         <SelectTrigger className="h-7 text-xs w-[80px]">
@@ -314,8 +284,8 @@ function AdminDashboard() {
                     </Select>
                   ) : filter === "month" ? (
                     <div className="flex gap-1">
-                      <Select 
-                        value={period2.split("-")[1]} 
+                      <Select
+                        value={period2.split("-")[1]}
                         onValueChange={(m) => setPeriod2(`${period2.split("-")[0]}-${m}`)}
                       >
                         <SelectTrigger className="h-7 text-xs w-[90px]">
@@ -327,8 +297,8 @@ function AdminDashboard() {
                           ))}
                         </SelectContent>
                       </Select>
-                      <Select 
-                        value={period2.split("-")[0]} 
+                      <Select
+                        value={period2.split("-")[0]}
                         onValueChange={(y) => setPeriod2(`${y}-${period2.split("-")[1]}`)}
                       >
                         <SelectTrigger className="h-7 text-xs w-[80px]">
@@ -417,46 +387,6 @@ function AdminDashboard() {
                 </BarChart>
               )}
             </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Quản lý Banner</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ProductImageUpload
-            imageFile={imageFile}
-            setImageFile={setImageFile}
-            uploadedImageUrl={uploadedImageUrl}
-            setUploadedImageUrl={setUploadedImageUrl}
-            setImageLoadingState={setImageLoadingState}
-            imageLoadingState={imageLoadingState}
-            isCustomStyling={true}
-          />
-          <Button onClick={handleUploadFeatureImage} className="mt-5 w-full">
-            Upload Banner
-          </Button>
-          <div className="flex flex-col gap-4 mt-5">
-            {featureImageList && featureImageList.length > 0
-              ? featureImageList.map((featureImgItem) => (
-                <div key={featureImgItem._id} className="relative group">
-                  <img
-                    src={featureImgItem.image}
-                    className="w-full h-[200px] object-cover rounded-lg"
-                  />
-                  <Button
-                    onClick={() =>
-                      handleDeleteFeatureImage(featureImgItem._id)
-                    }
-                    className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    Delete
-                  </Button>
-                </div>
-              ))
-              : null}
           </div>
         </CardContent>
       </Card>

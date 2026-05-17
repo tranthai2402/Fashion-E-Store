@@ -11,6 +11,8 @@ import {
   updateOrderStatus,
 } from "@/store/admin/order-slice";
 import { useToast } from "../ui/use-toast";
+import OrderTimeline from "../shopping-view/order-timeline";
+import { Button } from "../ui/button";
 
 const initialFormData = {
   status: "",
@@ -42,9 +44,26 @@ function AdminOrderDetailsView({ orderDetails }) {
     });
   }
 
+  function handleConfirmPayment() {
+    dispatch(
+      updateOrderStatus({ id: orderDetails?._id, orderStatus: orderDetails?.orderStatus, paymentStatus: "paid" })
+    ).then((data) => {
+      if (data?.payload?.success) {
+        dispatch(getOrderDetailsForAdmin(orderDetails?._id));
+        dispatch(getAllOrdersForAdmin());
+        toast({
+          title: "Payment confirmed successfully",
+        });
+      }
+    });
+  }
+
   return (
-    <DialogContent className="sm:max-w-[600px]">
+    <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
       <div className="grid gap-6">
+        <div className="mt-6 px-2">
+          <OrderTimeline currentStatus={orderDetails?.orderStatus} />
+        </div>
         <div className="grid gap-2">
           <div className="flex mt-6 items-center justify-between">
             <p className="font-medium">Order Code</p>
@@ -60,22 +79,48 @@ function AdminOrderDetailsView({ orderDetails }) {
           </div>
           <div className="flex mt-2 items-center justify-between">
             <p className="font-medium">Payment method</p>
-            <Label>{orderDetails?.paymentMethod}</Label>
+            <Label className="uppercase text-sm font-bold">{orderDetails?.paymentMethod}</Label>
           </div>
-          <div className="flex mt-2 items-center justify-between">
-            <p className="font-medium">Payment Status</p>
-            <Label>{orderDetails?.paymentStatus}</Label>
-          </div>
+          
+
+          {orderDetails?.paymentMethod === "cod" && (
+            <div className="flex mt-2 items-center justify-between">
+              <p className="font-medium">Payment Status</p>
+              <div className="flex items-center gap-2">
+                  <Badge
+                  className={`py-1 px-3 ${
+                      orderDetails?.paymentStatus === "paid" ? "bg-green-500 hover:bg-green-600" :
+                      orderDetails?.paymentStatus === "failed" ? "bg-red-600 hover:bg-red-700" :
+                      "bg-yellow-500 hover:bg-yellow-600"
+                  }`}
+                  >
+                  {orderDetails?.paymentStatus || "pending"}
+                  </Badge>
+                  {orderDetails?.paymentStatus !== "paid" && (
+                      <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="h-7 text-[10px] border-green-600 text-green-600 hover:bg-green-50"
+                          onClick={handleConfirmPayment}
+                      >
+                          Xác nhận đã nhận tiền
+                      </Button>
+                  )}
+              </div>
+            </div>
+          )}
           <div className="flex mt-2 items-center justify-between">
             <p className="font-medium">Order Status</p>
             <Label>
               <Badge
                 className={`py-1 px-3 ${
-                  orderDetails?.orderStatus === "confirmed"
-                    ? "bg-green-500"
-                    : orderDetails?.orderStatus === "rejected"
-                    ? "bg-red-600"
-                    : "bg-black"
+                  orderDetails?.orderStatus === "confirmed" ? "bg-blue-500 hover:bg-blue-600" :
+                  orderDetails?.orderStatus === "inProcess" ? "bg-cyan-500 hover:bg-cyan-600" :
+                  orderDetails?.orderStatus === "inShipping" ? "bg-indigo-500 hover:bg-indigo-600" :
+                  orderDetails?.orderStatus === "delivered" ? "bg-green-500 hover:bg-green-600" :
+                  orderDetails?.orderStatus === "rejected" || orderDetails?.orderStatus === "cancelled" ? "bg-red-600 hover:bg-red-700" :
+                  orderDetails?.orderStatus === "pending" ? "bg-yellow-500 hover:bg-yellow-600" :
+                  "bg-black"
                 }`}
               >
                 {orderDetails?.orderStatus}
@@ -129,10 +174,12 @@ function AdminOrderDetailsView({ orderDetails }) {
                 componentType: "select",
                 options: [
                   { id: "pending", label: "Pending" },
-                  { id: "inProcess", label: "In Process" },
+                  { id: "confirmed", label: "Confirmed" },
+                  { id: "inProcess", label: "Processing" },
                   { id: "inShipping", label: "In Shipping" },
                   { id: "delivered", label: "Delivered" },
                   { id: "rejected", label: "Rejected" },
+                  { id: "cancelled", label: "Cancelled" },
                 ],
               },
             ]}
