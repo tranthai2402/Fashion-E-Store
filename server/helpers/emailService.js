@@ -1,4 +1,8 @@
 const nodemailer = require("nodemailer");
+const CLIENT_ORIGIN =
+  process.env.CLIENT_URL || process.env.CLIENT_ORIGIN || "http://localhost:5173";
+const SERVER_URL =
+  process.env.SERVER_URL || `http://localhost:${process.env.PORT || 5000}`;
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -22,7 +26,7 @@ const sendNewsletterVoucher = async (email, voucherCode) => {
         </div>
         <p>Mã này có hiệu lực cho 1 lần sử dụng và hết hạn trong vòng 7 ngày kể từ hôm nay.</p>
         <p>Hãy nhanh tay quay lại website để mua sắm ngay nhé!</p>
-        <a href="${process.env.CLIENT_URL}" style="display: inline-block; padding: 10px 20px; background: #000; color: #fff; text-decoration: none; border-radius: 5px;">Quay lại mua hàng</a>
+        <a href="${CLIENT_ORIGIN}" style="display: inline-block; padding: 10px 20px; background: #000; color: #fff; text-decoration: none; border-radius: 5px;">Quay lại mua hàng</a>
         <br/><br/>
         <p>Thân mến,<br/>Đội ngũ Saint Laurent</p>
       </div>
@@ -33,7 +37,7 @@ const sendNewsletterVoucher = async (email, voucherCode) => {
 };
 
 const sendVerificationEmail = async (email, token) => {
-  const verificationLink = `${process.env.SERVER_URL || 'http://localhost:5000'}/api/auth/verify-link?token=${token}&email=${email}`;
+  const verificationLink = `${SERVER_URL}/api/auth/verify-link?token=${token}&email=${email}`;
 
   const mailOptions = {
     from: process.env.MAIL_USER,

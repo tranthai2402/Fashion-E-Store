@@ -2,6 +2,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import ShoppingHeader from "./header";
 import ShoppingFooter from "./footer";
 import NewsletterSidebar from "./newsletter-sidebar";
+import Chatbot from "./chatbot";
 
 function ShoppingLayout() {
   const location = useLocation();
@@ -13,6 +14,7 @@ function ShoppingLayout() {
         <ShoppingHeader />
         <Outlet />
         <NewsletterSidebar />
+        <Chatbot />
       </div>
     );
   }
@@ -25,6 +27,7 @@ function ShoppingLayout() {
       </main>
       <NewsletterSidebar />
       <ShoppingFooter />
+      <Chatbot />
     </div>
   );
 }

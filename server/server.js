@@ -24,6 +24,7 @@ const shopPromotionRouter = require("./routes/shop/promotion-routes");
 
 const commonFeatureRouter = require("./routes/common/feature-routes");
 const commonVideoRouter = require("./routes/common/video-routes");
+const chatRouter = require("./routes/common/chat-routes");
 const shopLookbookRouter = require("./routes/shop/lookbook-routes");
 const shopNewsletterRouter = require("./routes/shop/newsletter-routes");
 const adminPageRouter = require("./routes/admin/page-routes");
@@ -45,6 +46,14 @@ mongoose
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const CLIENT_ORIGINS = new Set(
+  [
+    process.env.CLIENT_URL,
+    process.env.CLIENT_ORIGIN,
+    "http://localhost:5173",
+    "http://localhost:5174",
+  ].filter(Boolean)
+);
 
 // Monitoring middleware
 app.use((req, res, next) => {
@@ -61,7 +70,13 @@ app.use((req, res, next) => {
 
 app.use(
   cors({
-    origin: process.env.CLIENT_URL,
+    origin: (origin, callback) => {
+      // Allow non-browser requests and whitelisted frontend origins.
+      if (!origin || CLIENT_ORIGINS.has(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
     methods: ["GET", "POST", "DELETE", "PUT", "PATCH"],
     allowedHeaders: [
       "Content-Type",
@@ -99,6 +114,7 @@ app.use("/api/shop/newsletter", shopNewsletterRouter);
 
 app.use("/api/common/feature", commonFeatureRouter);
 app.use("/api/common/videos", commonVideoRouter);
+app.use("/api/chat", chatRouter);
 
 app.use("/api/admin/pages", adminPageRouter);
 app.use("/api/shop/pages", shopPageRouter);

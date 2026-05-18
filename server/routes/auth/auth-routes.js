@@ -13,6 +13,10 @@ const {
 } = require("../../controllers/auth/auth-controller");
 
 const router = express.Router();
+const CLIENT_ORIGIN = process.env.CLIENT_URL || process.env.CLIENT_ORIGIN || "http://localhost:5173";
+const googleAuthEnabled =
+  Boolean(process.env.GOOGLE_CLIENT_ID) &&
+  Boolean(process.env.GOOGLE_CLIENT_SECRET);
 
 router.post("/register", registerUser);
 router.post("/verify", verifyUser);
@@ -33,13 +37,28 @@ router.put("/change-password", authMiddleware, changeUserPassword);
 // Google OAuth routes
 router.get(
   "/google",
+  (req, res, next) => {
+    if (!googleAuthEnabled) {
+      return res.status(503).json({
+        success: false,
+        message: "Google OAuth is not configured on server",
+      });
+    }
+    return next();
+  },
   passport.authenticate("google", { scope: ["profile", "email"] })
 );
 
 router.get(
   "/google/callback",
+  (req, res, next) => {
+    if (!googleAuthEnabled) {
+      return res.redirect(`${CLIENT_ORIGIN}/auth/login?error=google_not_configured`);
+    }
+    return next();
+  },
   passport.authenticate("google", {
-    failureRedirect: "http://localhost:5173/auth/login?error=google_auth_failed",
+    failureRedirect: `${CLIENT_ORIGIN}/auth/login?error=google_auth_failed`,
     session: false,
   }),
   googleAuthCallback

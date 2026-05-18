@@ -3,6 +3,7 @@ import { loginUser } from "@/store/auth-slice";
 import { useState } from "react";
 import { useDispatch } from "react-redux";
 import { Link } from "react-router-dom";
+import { getApiUrl } from "@/config/api";
 
 const initialState = {
   email: "",
@@ -164,7 +165,7 @@ function AuthLogin() {
       <button
         type="button"
         onClick={() => {
-          window.location.href = "http://localhost:5000/api/auth/google";
+          window.location.href = getApiUrl("/api/auth/google");
         }}
         className="w-full flex items-center justify-center gap-3 border border-gray-200 bg-white py-3.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 active:bg-gray-100 transition-all duration-300 rounded-sm"
       >

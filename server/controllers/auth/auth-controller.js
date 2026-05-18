@@ -4,6 +4,8 @@ const crypto = require("crypto");
 const User = require("../../models/User");
 const { sendVerificationEmail } = require("../../helpers/emailService");
 const { sendVerificationSMS } = require("../../helpers/smsService");
+const CLIENT_ORIGIN =
+  process.env.CLIENT_URL || process.env.CLIENT_ORIGIN || "http://localhost:5173";
 
 const EMAIL_REGEX = /^[a-zA-Z0-9](?:[a-zA-Z0-9.]*[a-zA-Z0-9])?@gmail\.com$/;
 const PHONE_REGEX = /^0\d{9}$/;
@@ -155,7 +157,7 @@ const verifyLink = async (req, res) => {
 
   try {
     if (!token || !email) {
-      return res.redirect(`${process.env.CLIENT_URL || "http://localhost:5173"}/auth/login?error=invalid_verification`);
+      return res.redirect(`${CLIENT_ORIGIN}/auth/login?error=invalid_verification`);
     }
 
     const user = await User.findOne({
@@ -165,7 +167,7 @@ const verifyLink = async (req, res) => {
     });
 
     if (!user) {
-      return res.redirect(`${process.env.CLIENT_URL || "http://localhost:5173"}/auth/login?error=verification_expired`);
+      return res.redirect(`${CLIENT_ORIGIN}/auth/login?error=verification_expired`);
     }
 
     user.isVerified = true;
@@ -185,10 +187,10 @@ const verifyLink = async (req, res) => {
     );
 
     res.cookie("token", jwtToken, { httpOnly: true, secure: false })
-      .redirect(`${process.env.CLIENT_URL || "http://localhost:5173"}/shop/home`);
+      .redirect(`${CLIENT_ORIGIN}/shop/home`);
   } catch (e) {
     console.log(e);
-    res.redirect(`${process.env.CLIENT_URL || "http://localhost:5173"}/auth/login?error=server_error`);
+    res.redirect(`${CLIENT_ORIGIN}/auth/login?error=server_error`);
   }
 };
 
@@ -623,7 +625,7 @@ const googleAuthCallback = (req, res) => {
   try {
     const user = req.user;
     if (!user) {
-      return res.redirect(`${process.env.CLIENT_URL}/auth/login?error=google_auth_failed`);
+      return res.redirect(`${CLIENT_ORIGIN}/auth/login?error=google_auth_failed`);
     }
 
     const token = jwt.sign(
@@ -639,10 +641,10 @@ const googleAuthCallback = (req, res) => {
 
     res
       .cookie("token", token, { httpOnly: true, secure: false })
-      .redirect(`${process.env.CLIENT_URL}/shop/home`);
+      .redirect(`${CLIENT_ORIGIN}/shop/home`);
   } catch (error) {
     console.log(error);
-    res.redirect(`${process.env.CLIENT_URL}/auth/login?error=server_error`);
+    res.redirect(`${CLIENT_ORIGIN}/auth/login?error=server_error`);
   }
 };
 
